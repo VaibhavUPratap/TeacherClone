@@ -1,0 +1,106 @@
+.cd-root {
+  display: flex;
+  height: 100vh;
+  background-color: #030303; 
+  color: #ededed;
+  font-family: 'Inter', -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+/* Sidebar (same as ResourceDashboard) */
+.cd-sidebar {
+  width: 260px;
+  background-color: #09090b;
+  border-right: 1px solid #1f1f23;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px;
+  flex-shrink: 0;
+}
+
+.cd-brand { margin-bottom: 32px; }
+.cd-brand h1 { font-size: 15px; font-weight: 800; color: #a78bfa; letter-spacing: 1px; margin: 0 0 4px; text-transform: uppercase; }
+.cd-brand p { font-size: 12px; color: #a1a1aa; margin: 0; }
+
+.cd-btn-new { background-color: #8b5cf6; color: #ffffff; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin-bottom: 32px; transition: background-color 0.2s; }
+.cd-btn-new:hover { background-color: #7c3aed; }
+
+.cd-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.cd-nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; color: #a1a1aa; text-decoration: none; font-size: 14px; font-weight: 500; border-radius: 8px; transition: all 0.2s; }
+.cd-nav-item:hover { color: #ededed; background-color: rgba(255, 255, 255, 0.05); }
+.cd-nav-item.active { color: #8b5cf6; background-color: rgba(139, 92, 246, 0.1); }
+
+.cd-nav-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding-top: 24px; border-top: 1px solid #1f1f23; }
+
+/* Main Content Area */
+.cd-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background-color: #09090b; }
+
+/* Top Navbar */
+.cd-topbar { height: 60px; display: flex; align-items: center; justify-content: flex-end; padding: 0 32px; border-bottom: 1px solid #1f1f23; background-color: #09090b; flex-shrink: 0; }
+.cd-topbar-icons { display: flex; align-items: center; gap: 20px; color: #a1a1aa; }
+.cd-topbar-icons svg { cursor: pointer; transition: color 0.2s; }
+.cd-topbar-icons svg:hover { color: #ededed; }
+.cd-avatar { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; cursor: pointer; margin-left: 8px; border: 1px solid #27272a; }
+.cd-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Content Columns */
+.cd-content { display: flex; flex: 1; overflow: hidden; }
+.cd-column { height: 100%; overflow-y: auto; }
+
+/* Custom Scrollbar for all columns */
+.cd-column::-webkit-scrollbar { width: 6px; }
+.cd-column::-webkit-scrollbar-track { background: transparent; }
+.cd-column::-webkit-scrollbar-thumb { background-color: #27272a; border-radius: 10px; }
+
+/* History Column */
+.cd-history { width: 280px; flex-shrink: 0; background-color: #111113; border-right: 1px solid #1f1f23; padding: 24px; }
+.cd-history h2 { font-size: 20px; font-weight: 500; margin: 0 0 24px; color: #f4f4f5; }
+.cd-hx-list { display: flex; flex-direction: column; gap: 8px; }
+.cd-hx-item { padding: 14px 16px; border-radius: 8px; cursor: pointer; border-left: 2px solid transparent; display: flex; flex-direction: column; gap: 6px; }
+.cd-hx-item h4 { font-size: 13px; font-weight: 500; color: #a1a1aa; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cd-hx-item p { font-size: 11px; color: #555; margin: 0; }
+.cd-hx-item:hover { background-color: #1a1a1d; }
+
+.cd-hx-item.active { background-color: #1a1a1e; border-left: 2px solid #8b5cf6; border-radius: 0 8px 8px 0; }
+.cd-hx-item.active h4 { color: #ededed; }
+
+/* Chat Column */
+.cd-chat { flex: 1; background-color: #09090b; display: flex; flex-direction: column; }
+.cd-chat-messages { flex: 1; padding: 32px 40px; display: flex; flex-direction: column; overflow-y: auto; }
+
+.cd-msg { padding: 16px 20px; border-radius: 14px; margin-bottom: 24px; font-size: 14px; line-height: 1.6; max-width: 80%; }
+.cd-msg p { border: none; margin-top: 0; margin-bottom: 1em; }
+.cd-msg p:last-child { margin-bottom: 0; }
+
+.cd-msg.ai { background-color: #17171a; color: #e4e4e7; border-radius: 14px 14px 14px 4px; border: 1px solid #232326; }
+.cd-msg.user { background-color: #161528; color: #e4e4e7; align-self: flex-end; border-radius: 14px 14px 4px 14px; }
+
+/* Chat Input */
+.cd-input-wrapper { padding: 0 40px 32px; background-color: transparent; }
+.cd-input-container { background-color: #121214; border: 1px solid #27272a; border-radius: 14px; padding: 10px 14px; display: flex; align-items: center; }
+.cd-input-container input { flex: 1; background: transparent; border: none; color: #ededed; outline: none; padding: 8px 12px; font-size: 14px; font-family: inherit; }
+.cd-input-container input::placeholder { color: #52525b; }
+.cd-icon-clip { color: #52525b; margin: 0 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color 0.2s; }
+.cd-icon-clip:hover { color: #ededed; }
+
+.cd-btn-send { background-color: #8b5cf6; color: #ffffff; border: none; border-radius: 10px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.2s; }
+.cd-btn-send:hover { background-color: #7c3aed; }
+
+/* Sources Column */
+.cd-sources { width: 320px; flex-shrink: 0; background-color: #09090b; border-left: 1px solid #1f1f23; padding: 24px; }
+.cd-sources h2 { font-size: 20px; font-weight: 500; margin: 0 0 24px; color: #f4f4f5; }
+
+.cd-src-card { background-color: #111113; border: 1px solid #1f1f23; border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: transform 0.2s, border-color 0.2s; cursor: pointer; }
+.cd-src-card:hover { border-color: #27272a; transform: translateY(-2px); }
+.cd-src-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.cd-src-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+.cd-src-badge.pdf { color: #8b5cf6; }
+.cd-src-badge.video { color: #60a5fa; background-color: rgba(96, 165, 250, 0.1); padding: 4px 8px; border-radius: 4px; }
+
+.cd-src-link { color: #52525b; display: flex; align-items: center; justify-content: center; transition: color 0.2s; }
+.cd-src-card:hover .cd-src-link { color: #a1a1aa; }
+
+.cd-src-card h4 { font-size: 14px; font-weight: 500; color: #ededed; margin: 0 0 8px; line-height: 1.5; }
+.cd-src-card p { font-size: 12px; color: #a1a1aa; line-height: 1.5; margin: 0; }
+
+.cd-src-video-thumb { background-color: #1c1c1c; height: 100px; border-radius: 8px; display: flex; justify-content: center; align-items: center; margin-top: 16px; border: 1px solid #27272a; color: #ededed; }

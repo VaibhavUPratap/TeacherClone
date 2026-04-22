@@ -1,7 +1,7 @@
-import Home from "./pages/Home";
+import ConversationDashboard from "./conversation_dashboard/ConversationDashboard";
 
 function App() {
-  return <Home />;
+  return <ConversationDashboard />;
 }
 
 export default App;
