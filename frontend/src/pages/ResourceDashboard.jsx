@@ -14,9 +14,9 @@ const FolderIcon = () => (
   </svg>
 );
 
-const GridIcon = () => (
-  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+const ChatBubbleIcon = () => (
+  <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" />
   </svg>
 );
 
@@ -129,7 +129,7 @@ export default function ResourceDashboard() {
 
         <nav className="rd-nav">
           <a href="#resources" className="rd-nav-item active"><FolderIcon /> Resources</a>
-          <a href="#workspace" className="rd-nav-item"><GridIcon /> Workspace</a>
+          <a href="#conversations" className="rd-nav-item"><ChatBubbleIcon /> Conversations</a>
           <a href="#lectures" className="rd-nav-item"><PlayOutlineIcon /> Lectures</a>
           <a href="#slides" className="rd-nav-item"><FileUpIcon /> Slides</a>
           <a href="#data" className="rd-nav-item"><BarChartIcon /> Classroom Data</a>
