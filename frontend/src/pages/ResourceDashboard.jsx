@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./ResourceDashboard.css";
+import { apiRequest } from "../api/api";
 
 // --- Icons ---
 const PlusIcon = () => (
@@ -114,6 +115,31 @@ const DotIcon = () => (
 
 
 export default function ResourceDashboard() {
+  const [stats, setStats] = useState({
+    total_questions: 0,
+    top_topics: [],
+    weak_areas: [],
+    recent_questions: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const data = await apiRequest("/dashboard/");
+        setStats(data);
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+    // Refresh every 30 seconds for live feel
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="rd-root">
       {/* Sidebar */}
@@ -236,8 +262,19 @@ export default function ResourceDashboard() {
               </div>
               <div className="rd-ci-stat">
                 <span className="rd-ci-stat-label">Entries</span>
-                <span className="rd-ci-stat-val">1,402</span>
+                <span className="rd-ci-stat-val">{stats.total_questions.toLocaleString()}</span>
               </div>
+
+              {stats.top_topics.length > 0 && (
+                <div className="rd-ci-topics">
+                  <p className="rd-ci-topics-label">Top Interests</p>
+                  <div className="rd-ci-topics-list">
+                    {stats.top_topics.map((topic, i) => (
+                      <span key={i} className="rd-topic-pill">{topic}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="rd-ci-actions">
                 <button className="rd-btn-outline"><MailIcon /> Import Emails</button>

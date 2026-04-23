@@ -19,6 +19,7 @@ def ask(request: ChatRequest):
 @router.get("/stream", response_class=PlainTextResponse)
 def stream():
     """
-    Simple mock streaming endpoint. Ready for Server-Sent Events (SSE) later.
+    Simple mock streaming endpoint.
+    Delegates logic to the ChatService.
     """
-    return "Mock Stream: [Thinking...] [Searching Source...] [Generative Response...]"
+    return chat_service.get_mock_stream_data()

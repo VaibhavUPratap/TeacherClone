@@ -2,13 +2,13 @@ class IngestService:
     """Service to handle document ingestion logic."""
 
     @staticmethod
-    def process_file() -> dict:
+    def process_file(filename: str) -> dict:
         """
-        Simulates file processing. 
+        Simulates file processing for the given filename. 
         In the future, this will involve OCR/PDF parsing and Vector DB insertion.
         """
         return {
-            "file_id": "f-mock-123",
+            "file_id": f"f-{filename}-123",
             "status": "processing"
         }
 

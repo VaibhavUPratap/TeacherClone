@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
 from ..schemas.ingest_schema import IngestResponse, StatusResponse
 from ..services.ingest_service import ingest_service
 
@@ -6,12 +6,12 @@ router = APIRouter()
 
 
 @router.post("/file", response_model=IngestResponse)
-def upload_file():
+def upload_file(file: UploadFile = File(...)):
     """
     Simulates file upload and processing.
     Delegates logic to IngestService.
     """
-    return ingest_service.process_file()
+    return ingest_service.process_file(file.filename)
 
 
 @router.get("/status/{id}", response_model=StatusResponse)

@@ -7,3 +7,4 @@ pydantic-settings
 firebase-admin
 pymongo
 httpx
+python-multipart
