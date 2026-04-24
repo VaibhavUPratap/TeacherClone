@@ -1,3 +1,4 @@
+pandas>=2.0
 fastapi
 uvicorn
 python-dotenv
@@ -8,3 +9,10 @@ firebase-admin
 pymongo
 httpx
 python-multipart
+chromadb
+pymupdf
+
+# TTS — Coqui XTTS-v2 (local inference)
+TTS
+torch
+soundfile

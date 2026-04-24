@@ -43,3 +43,6 @@ Thumbs.db
 # Static generated files
 backend/static/audio/*
 !backend/static/audio/.gitkeep
+
+# Firebase service account key (NEVER commit this)
+backend/firebase_admin.json

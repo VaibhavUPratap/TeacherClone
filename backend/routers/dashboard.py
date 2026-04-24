@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from ..schemas.dashboard_schema import DashboardStats
-from ..services.dashboard_service import dashboard_service
+from schemas.dashboard_schema import DashboardStats
+from services.dashboard_service import dashboard_service
 
 router = APIRouter()
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
-from fastapi.responses import PlainTextResponse
-from ..schemas.chat_schema import ChatRequest, ChatResponse
-from ..services import chat_service
+from fastapi.responses import StreamingResponse
+from schemas.chat_schema import ChatRequest, ChatResponse
+from services import chat_service
 
 router = APIRouter()
 
@@ -16,10 +16,13 @@ def ask(request: ChatRequest):
     return result
 
 
-@router.get("/stream", response_class=PlainTextResponse)
-def stream():
+@router.get("/stream")
+async def stream(question: str):
     """
-    Simple mock streaming endpoint.
-    Delegates logic to the ChatService.
+    Real-time streaming endpoint using Server-Sent Events (SSE).
+    Calls the async generator in ChatService.
     """
-    return chat_service.get_mock_stream_data()
+    return StreamingResponse(
+        chat_service.stream_answer(question),
+        media_type="text/event-stream"
+    )

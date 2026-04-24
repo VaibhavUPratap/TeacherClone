@@ -1,8 +1,9 @@
 import httpx
 import json
 from openai import OpenAI
-from ..config import settings
+from config import settings
 from .knowledge_base import get_keyword_answer
+from .vector_service import vector_service
 
 from datetime import datetime
 
@@ -23,7 +24,7 @@ class ChatService:
         # Step 1: Validate Topic and Identify Category
         is_on_topic, category = self._validate_and_categorize(question)
         
-        # Log to history
+        # Log to history (Real system behavior: store questions)
         CHAT_HISTORY.append({
             "question": question,
             "category": category,
@@ -88,42 +89,101 @@ class ChatService:
             print(f"Topic Validation Error: {e}")
             return True, "General"
 
-    def _generate_with_ollama(self, question: str) -> dict:
+    # ── RAG helpers ────────────────────────────────────────────────────────
+
+    def _get_question_embedding(self, question: str) -> list[float] | None:
         """
-        Generates an answer using the local Ollama instance.
+        Call Ollama's /api/embeddings endpoint to embed the user's question.
+        Returns None on failure so the caller can handle gracefully.
         """
         try:
+            url = f"{settings.OLLAMA_BASE_URL}/api/embeddings"
+            payload = {"model": settings.OLLAMA_EMBED_MODEL, "prompt": question}
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(url, json=payload)
+                response.raise_for_status()
+            return response.json()["embedding"]
+        except Exception as e:
+            print(f"Embedding Error: {e}")
+            return None
+
+    def _generate_with_ollama(self, question: str) -> dict:
+        """
+        RAG-aware Ollama generation.
+
+        Flow:
+          1. Embed the question with nomic-embed-text.
+          2. Retrieve top-3 relevant chunks from ChromaDB.
+          3. If chunks found  → build a context-injected prompt and call llama3.
+          4. If no chunks     → return a clear "no data" message (never hallucinate).
+        """
+        try:
+            # ── Step 1: Embed the question ───────────────────────────────────
+            query_embedding = self._get_question_embedding(question)
+
+            # ── Step 2: Retrieve context from vector DB ──────────────────────
+            context_chunks: list[str] = []
+            if query_embedding is not None:
+                context_chunks = vector_service.query_similar(
+                    query_embedding=query_embedding,
+                    n_results=3,
+                )
+
+            # ── Step 3: Guard — no context found ────────────────────────────
+            if not context_chunks:
+                return {
+                    "answer": (
+                        "No relevant data found in knowledge base. "
+                        "Please upload study materials first using the /ingest/file endpoint."
+                    ),
+                    "source": "RAG Guard",
+                    "confidence": 0.0,
+                }
+
+            # ── Step 4: Build structured prompt ─────────────────────────────
+            context_text = "\n\n---\n\n".join(
+                f"[Chunk {i + 1}]\n{chunk}"
+                for i, chunk in enumerate(context_chunks)
+            )
+            rag_prompt = (
+                "Answer the question using ONLY the context provided below. "
+                "If the context does not contain enough information, say so honestly.\n\n"
+                f"Context:\n{context_text}\n\n"
+                f"Question:\n{question}"
+            )
+
+            # ── Step 5: Call llama3 ──────────────────────────────────────────
             payload = {
                 "model": settings.OLLAMA_MODEL,
                 "messages": [
                     {
-                        "role": "system", 
+                        "role": "system",
                         "content": (
-                            "You are a helpful teaching assistant named TeacherClone. "
-                            "You ONLY answer questions related to education, school, and learning. "
-                            "If a question is off-topic, politely refuse and redirect to studies."
-                        )
+                            "You are TeacherClone, a helpful teaching assistant. "
+                            "Answer questions strictly based on the provided context. "
+                            "Do not make up information not present in the context."
+                        ),
                     },
-                    {"role": "user", "content": question}
+                    {"role": "user", "content": rag_prompt},
                 ],
-                "stream": False
+                "stream": False,
             }
-            
-            with httpx.Client(timeout=30.0) as client:
+
+            with httpx.Client(timeout=60.0) as client:
                 response = client.post(self.ollama_url, json=payload)
                 response.raise_for_status()
                 data = response.json()
-                
+
             answer = data["message"]["content"]
-            
+
             return {
                 "answer": answer,
-                "source": f"Ollama ({settings.OLLAMA_MODEL})",
-                "confidence": 0.9
+                "source": f"RAG · Ollama ({settings.OLLAMA_MODEL})",
+                "confidence": 0.92,
             }
+
         except Exception as e:
-            print(f"Ollama Error: {e}. Falling back to OpenAI...")
-            # Fallback to OpenAI if Ollama fails
+            print(f"Ollama RAG Error: {e}. Falling back to OpenAI...")
             return self._generate_with_openai(question)
 
     def _generate_with_openai(self, question: str) -> dict:
@@ -161,6 +221,46 @@ class ChatService:
                 "source": "Error System",
                 "confidence": 0.0
             }
+
+    async def stream_answer(self, question: str):
+        """
+        Generates a streaming answer using Ollama and yields SSE formatted chunks.
+        """
+        # Log to history
+        CHAT_HISTORY.append({
+            "question": question,
+            "category": "Streaming",
+            "time": datetime.now().strftime("%I:%M %p")
+        })
+
+        url = f"{settings.OLLAMA_BASE_URL}/api/generate"
+        payload = {
+            "model": settings.OLLAMA_MODEL,
+            "prompt": question,
+            "stream": True
+        }
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                async with client.stream("POST", url, json=payload) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        
+                        try:
+                            data = json.loads(line)
+                            token = data.get("response", "")
+                            # Format for SSE
+                            yield f"data: {token}\n\n"
+                            
+                            if data.get("done"):
+                                break
+                        except json.JSONDecodeError:
+                            continue
+            except Exception as e:
+                print(f"Streaming Error: {e}")
+                yield f"data: Error: {str(e)}\n\n"
 
     def get_mock_stream_data(self) -> str:
         """
