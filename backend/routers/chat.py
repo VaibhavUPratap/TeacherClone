@@ -17,12 +17,20 @@ def ask(request: ChatRequest):
 
 
 @router.get("/stream")
-async def stream(question: str):
+async def stream(question: str, teacher_id: str = None):
     """
     Real-time streaming endpoint using Server-Sent Events (SSE).
     Calls the async generator in ChatService.
     """
     return StreamingResponse(
-        chat_service.stream_answer(question),
+        chat_service.stream_answer(question, teacher_id),
         media_type="text/event-stream"
     )
+
+
+@router.get("/history")
+def get_history(limit: int = 50):
+    """
+    Retrieves past chat history.
+    """
+    return chat_service.get_history(limit)

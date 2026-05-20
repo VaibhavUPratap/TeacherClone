@@ -1,13 +1,12 @@
 import httpx
 import json
 from openai import OpenAI
-from config import settings
+from config import settings, supabase
 from .knowledge_base import get_keyword_answer
 from .vector_service import vector_service
-
 from datetime import datetime
 
-CHAT_HISTORY = [] # List of dicts: {"question": str, "category": str, "time": str}
+# Removed global CHAT_HISTORY list in favor of MongoDB persistence
 
 class ChatService:
     """Service to handle chat logic using either OpenAI or Ollama."""
@@ -24,12 +23,17 @@ class ChatService:
         # Step 1: Validate Topic and Identify Category
         is_on_topic, category = self._validate_and_categorize(question)
         
-        # Log to history (Real system behavior: store questions)
-        CHAT_HISTORY.append({
-            "question": question,
-            "category": category,
-            "time": datetime.now().strftime("%I:%M %p")
-        })
+        # Log to history in Supabase
+        if supabase is not None:
+            try:
+                supabase.table("chats").insert({
+                    "question": question,
+                    "category": category,
+                    "time": datetime.now().strftime("%I:%M %p"),
+                    "timestamp": datetime.now().isoformat()
+                }).execute()
+            except Exception as e:
+                print(f"Supabase History Error: {e}")
 
         if not is_on_topic:
             return {
@@ -222,21 +226,75 @@ class ChatService:
                 "confidence": 0.0
             }
 
-    async def stream_answer(self, question: str):
+    async def stream_answer(self, question: str, teacher_id: str = None):
         """
         Generates a streaming answer using Ollama and yields SSE formatted chunks.
+        Injects teacher personality and RAG context if available.
         """
-        # Log to history
-        CHAT_HISTORY.append({
-            "question": question,
-            "category": "Streaming",
-            "time": datetime.now().strftime("%I:%M %p")
-        })
+        from services.teacher_service import teacher_service
+        
+        # 1. Retrieve Teacher Persona
+        teacher = None
+        if teacher_id:
+            teacher = teacher_service.get_teacher_by_id(teacher_id)
+        
+        system_prompt = (
+            "You are TeacherClone, a helpful teaching assistant. "
+            "You ONLY answer questions related to education, school, and learning. "
+            "If a question is off-topic, politely refuse and redirect to studies."
+        )
+        
+        if teacher:
+            system_prompt = teacher["personality_prompt"]
 
-        url = f"{settings.OLLAMA_BASE_URL}/api/generate"
+        # 2. Retrieve Context (RAG)
+        context_text = ""
+        try:
+            query_embedding = self._get_question_embedding(question)
+            if query_embedding:
+                context_chunks = vector_service.query_similar(
+                    query_embedding=query_embedding,
+                    n_results=3,
+                )
+                if context_chunks:
+                    context_text = "\n\n---\n\n".join(
+                        f"[Resource {i + 1}]\n{chunk}"
+                        for i, chunk in enumerate(context_chunks)
+                    )
+        except Exception as e:
+            print(f"RAG Retrieval Error in stream: {e}")
+
+        # 3. Build Final Prompt
+        # We want the teacher to use the context but stay in character
+        user_prompt = question
+        if context_text:
+            user_prompt = (
+                f"Use the following lecture context to answer the student's question. "
+                f"Maintain your teacher persona and explanation style as defined in your system prompt.\n\n"
+                f"--- CONTEXT ---\n{context_text}\n\n"
+                f"--- STUDENT QUESTION ---\n{question}"
+            )
+
+        # Log to history in Supabase
+        if supabase is not None:
+            try:
+                supabase.table("chats").insert({
+                    "question": question,
+                    "category": teacher["subject_id"] if teacher else "General",
+                    "time": datetime.now().strftime("%I:%M %p"),
+                    "timestamp": datetime.now().isoformat(),
+                    "teacher_id": teacher_id
+                }).execute()
+            except Exception as e:
+                print(f"Supabase History Error (Stream): {e}")
+
+        url = f"{settings.OLLAMA_BASE_URL}/api/chat"
         payload = {
             "model": settings.OLLAMA_MODEL,
-            "prompt": question,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
             "stream": True
         }
 
@@ -250,8 +308,7 @@ class ChatService:
                         
                         try:
                             data = json.loads(line)
-                            token = data.get("response", "")
-                            # Format for SSE
+                            token = data.get("message", {}).get("content", "")
                             yield f"data: {token}\n\n"
                             
                             if data.get("done"):
@@ -262,11 +319,14 @@ class ChatService:
                 print(f"Streaming Error: {e}")
                 yield f"data: Error: {str(e)}\n\n"
 
-    def get_mock_stream_data(self) -> str:
-        """
-        Returns a mock streaming response string.
-        Logic moved from router to service to follow Clean Architecture.
-        """
-        return "Mock Stream: [Thinking...] [Searching Source...] [Generative Response...]"
+    def get_history(self, limit: int = 50) -> list:
+        """Retrieves chat history from Supabase."""
+        if supabase is not None:
+            try:
+                response = supabase.table("chats").select("*").order("timestamp", desc=True).limit(limit).execute()
+                return response.data
+            except Exception as e:
+                print(f"Supabase Fetch Error: {e}")
+        return []
 
 chat_service = ChatService()

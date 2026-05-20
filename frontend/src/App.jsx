@@ -7,33 +7,64 @@ import Lectures from './pages/dashboard/Lectures';
 import Slides from './pages/dashboard/Slides';
 import ClassData from './pages/dashboard/ClassData';
 import Archive from './pages/dashboard/Archive';
+import TeacherInteraction from './pages/dashboard/TeacherInteraction';
+import SubjectSelection from './pages/dashboard/SubjectSelection';
+import StudentAnalytics from './pages/dashboard/StudentAnalytics';
+import { useAuth } from './context/AuthContext';
 
-// Temporary placeholders for other pages
-const Placeholder = ({ title }) => (
-  <div className="fade-in">
-    <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>{title}</h2>
-    <div className="glass-card" style={{ padding: '2rem', height: '400px', display: 'flex', alignItems: 'center', justifyCenter: 'center' }}>
-      <p style={{ color: 'var(--text-secondary)' }}>Coming Soon: This module is under construction.</p>
-    </div>
-  </div>
-);
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return <div className="loading-screen">Loading...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  
+  return children;
+};
+
+// Public Only Route (Redirect to dashboard if already logged in)
+const PublicOnlyRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return null;
+  if (user) return <Navigate to="/dashboard" replace />;
+  
+  return children;
+};
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route 
+          path="/login" 
+          element={
+            <PublicOnlyRoute>
+              <Login />
+            </PublicOnlyRoute>
+          } 
+        />
         
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Resources />} />
+          <Route path="subjects" element={<SubjectSelection />} />
+          <Route path="interaction" element={<TeacherInteraction />} />
           <Route path="conversations" element={<Conversations />} />
           <Route path="lectures" element={<Lectures />} />
           <Route path="slides" element={<Slides />} />
           <Route path="data" element={<ClassData />} />
+          <Route path="analytics" element={<StudentAnalytics />} />
           <Route path="archive" element={<Archive />} />
         </Route>
 
-        {/* Redirect root to login for now, or dashboard if auth exists */}
+        {/* Redirect root based on auth status is handled by the routes above */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

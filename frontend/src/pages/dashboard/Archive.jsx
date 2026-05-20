@@ -1,85 +1,77 @@
-import React from 'react';
-import { Archive as ArchiveIcon, Search, Filter, MoreHorizontal, File } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Archive as ArchiveIcon, Search, Filter, MoreHorizontal, File, MessageSquare, Clock, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { apiRequest } from '../../api/api';
 
 export default function Archive() {
-  const archives = [
-    { name: "Fall 2023 - Physics 101", items: 45, date: "Dec 2023" },
-    { name: "Spring 2023 - Math Foundations", items: 32, date: "May 2023" },
-  ];
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const data = await apiRequest("/chat/history?limit=100");
+      setHistory(data);
+    } catch (err) {
+      console.error("Failed to fetch history:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="loading-state"><Loader2 className="animate-spin" /> Loading Archive...</div>;
 
   return (
     <div className="archive-page fade-in">
       <header className="page-header">
         <div className="header-text">
-          <h2>Archive</h2>
-          <p>Past semesters and historical course data</p>
+          <h2>Learning Archive</h2>
+          <p>Historical chat interactions and doubt resolutions</p>
         </div>
       </header>
 
-      <div className="archive-controls glass-card">
-        <div className="search-box glass">
+      <div className="archive-controls">
+        <div className="search-box">
           <Search size={18} />
-          <input type="text" placeholder="Search archives..." />
+          <input type="text" placeholder="Search your past questions..." />
         </div>
-        <button className="filter-btn glass"><Filter size={18} /> Filter</button>
+        <button className="filter-btn"><Filter size={18} /> Filter</button>
       </div>
 
       <div className="archive-grid">
-        {archives.map((folder, i) => (
-          <motion.div 
-            key={i} 
-            className="glass-card archive-card"
-            whileHover={{ scale: 1.02 }}
-          >
-            <div className="card-top">
-              <div className="folder-icon purple">
-                <ArchiveIcon size={24} />
+        {history.length > 0 ? (
+          history.map((chat, i) => (
+            <motion.div 
+              key={i} 
+              className="archive-card"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="card-top">
+                <div className="folder-icon purple">
+                  <MessageSquare size={22} />
+                </div>
+                <div className="category-tag">{chat.category}</div>
               </div>
-              <button className="more-btn"><MoreHorizontal size={18} /></button>
-            </div>
-            <div className="card-info">
-              <h3>{folder.name}</h3>
-              <p>{folder.items} items • Archived {folder.date}</p>
-            </div>
-            <div className="card-footer">
-              <button className="btn-text">Open Archive</button>
-            </div>
-          </motion.div>
-        ))}
+              <div className="card-info">
+                <h3>{chat.question}</h3>
+                <div className="meta">
+                  <span className="time"><Clock size={14} /> {chat.time}</span>
+                </div>
+              </div>
+              <div className="card-footer">
+                <button className="btn-text">View Session</button>
+              </div>
+            </motion.div>
+          ))
+        ) : (
+          <div className="no-history">
+            <p>No chat history found. Start a conversation with a teacher!</p>
+          </div>
+        )}
       </div>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        .archive-page { display: flex; flex-direction: column; gap: 32px; }
-        .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
-        .header-text h2 { font-size: 2rem; margin-bottom: 4px; }
-        .header-text p { color: var(--text-secondary); }
-        .archive-controls { padding: 16px; display: flex; gap: 16px; }
-        .search-box { 
-          flex: 1; display: flex; align-items: center; gap: 12px; padding: 0 16px; 
-          border-radius: 12px; color: var(--text-tertiary);
-        }
-        .search-box input { 
-          flex: 1; background: transparent; border: none; outline: none; 
-          color: white; height: 44px; font-size: 0.9375rem;
-        }
-        .filter-btn { 
-          display: flex; align-items: center; gap: 8px; padding: 0 20px; 
-          border-radius: 12px; color: var(--text-secondary); font-weight: 600;
-        }
-        .archive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
-        .archive-card { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-        .card-top { display: flex; justify-content: space-between; align-items: center; }
-        .folder-icon { 
-          width: 48px; height: 48px; border-radius: 14px; display: flex; 
-          align-items: center; justify-content: center;
-        }
-        .folder-icon.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
-        .card-info h3 { font-size: 1.125rem; margin-bottom: 4px; }
-        .card-info p { font-size: 0.8125rem; color: var(--text-tertiary); }
-        .card-footer { border-top: 1px solid var(--border-color); pt: 16px; margin-top: 10px; }
-        .btn-text { color: var(--accent-primary); font-weight: 600; font-size: 0.875rem; padding-top: 16px; }
-      `}} />
     </div>
   );
 }

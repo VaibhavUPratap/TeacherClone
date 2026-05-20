@@ -2,6 +2,7 @@ import os
 import uuid
 import httpx
 import fitz  # PyMuPDF
+from datetime import datetime
 
 from config import settings
 from .vector_service import vector_service
@@ -139,11 +140,36 @@ class IngestService:
             metadatas=metadatas,
         )
 
+        from config import supabase
+        if supabase is not None:
+            try:
+                supabase.table("documents").insert({
+                    "file_id": file_id,
+                    "filename": filename,
+                    "chunk_count": len(chunks),
+                    "timestamp": datetime.now().isoformat(),
+                    "status": "completed"
+                }).execute()
+            except Exception as e:
+                print(f"Supabase Ingest Error: {e}")
+
         return {
             "file_id": file_id,
-            "chunk_count": len(chunks),
-            "status": "completed",
+            "filename": filename,
+            "status": "completed"
         }
+
+    @staticmethod
+    def get_all_documents():
+        """Retrieves all ingested documents from Supabase."""
+        from config import supabase
+        if supabase is not None:
+            try:
+                response = supabase.table("documents").select("*").order("timestamp", desc=True).execute()
+                return response.data or []
+            except Exception as e:
+                print(f"Supabase List Documents Error: {e}")
+        return []
 
     def get_ingestion_status(self, file_id: str) -> dict:
         """

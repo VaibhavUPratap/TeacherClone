@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 
-# Import config first — this triggers Firebase Admin SDK initialization
+# Import config first — this triggers Supabase initialization
 import config  # noqa: F401
+from services.teacher_service import teacher_service
 
 from routers import auth, chat, ingest, tts, dashboard
 
@@ -29,4 +30,9 @@ app.include_router(chat.router, prefix="/chat")
 app.include_router(ingest.router, prefix="/ingest")
 app.include_router(tts.router, prefix="/tts")
 app.include_router(dashboard.router, prefix="/dashboard")
+
+@app.on_event("startup")
+async def startup_event():
+    """Run startup tasks."""
+    teacher_service.seed_db()
 
