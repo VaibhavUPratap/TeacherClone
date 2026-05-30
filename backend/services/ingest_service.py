@@ -62,6 +62,18 @@ def _extract_text_from_pdf(file_path: str) -> str:
     return "\n".join(pages)
 
 
+def _extract_text_from_pptx(file_path: str) -> str:
+    """Extract all text from a PPTX presentation file using python-pptx."""
+    from pptx import Presentation
+    prs = Presentation(file_path)
+    text_runs = []
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if hasattr(shape, "text") and shape.text.strip():
+                text_runs.append(shape.text.strip())
+    return "\n".join(text_runs)
+
+
 def _extract_text_from_txt(file_path: str) -> str:
     """Read raw text from a .txt file."""
     with open(file_path, "r", encoding="utf-8", errors="replace") as f:
@@ -76,19 +88,20 @@ class IngestService:
 
     Flow:
       1. Save the uploaded file to disk.
-      2. Extract text (PDF or plain text).
+      2. Extract text (PDF, PPTX, or plain text).
       3. Split text into word-count chunks (~400 words each).
       4. Generate an Ollama embedding for each chunk.
       5. Store chunks + embeddings in ChromaDB via VectorService.
     """
 
-    def process_file(self, filename: str, file_bytes: bytes) -> dict:
+    def process_file(self, filename: str, file_bytes: bytes, subject_id: str = None) -> dict:
         """
         Ingest an uploaded file and populate the vector store.
 
         Args:
             filename:   Original filename (used to detect type & as metadata).
             file_bytes: Raw file content from the UploadFile.
+            subject_id: Optional ID of the subject this file belongs to.
 
         Returns:
             A dict with file_id, chunk_count, and status.
@@ -102,13 +115,15 @@ class IngestService:
         ext = os.path.splitext(filename)[-1].lower()
         if ext == ".pdf":
             raw_text = _extract_text_from_pdf(file_path)
+        elif ext in (".pptx", ".ppt"):
+            raw_text = _extract_text_from_pptx(file_path)
         elif ext in (".txt", ".md"):
             raw_text = _extract_text_from_txt(file_path)
         else:
             return {
                 "file_id": None,
                 "status": "error",
-                "detail": f"Unsupported file type: {ext}. Upload PDF or TXT.",
+                "detail": f"Unsupported file type: {ext}. Upload PDF, PPTX or TXT.",
             }
 
         if not raw_text.strip():
@@ -131,7 +146,12 @@ class IngestService:
             embedding = _get_embedding(chunk)
             ids.append(f"{file_id}_{i}")
             embeddings.append(embedding)
-            metadatas.append({"source": filename, "chunk_index": i})
+            # Add subject_id to metadata so queries can isolate searches by subject!
+            metadatas.append({
+                "source": filename, 
+                "chunk_index": i,
+                "subject_id": subject_id or ""
+            })
 
         vector_service.add_documents(
             chunks=chunks,
@@ -148,7 +168,8 @@ class IngestService:
                     "filename": filename,
                     "chunk_count": len(chunks),
                     "timestamp": datetime.now().isoformat(),
-                    "status": "completed"
+                    "status": "completed",
+                    "subject_id": subject_id
                 }).execute()
             except Exception as e:
                 print(f"Supabase Ingest Error: {e}")

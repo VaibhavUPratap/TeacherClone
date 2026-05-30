@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import DashboardLayout from './components/layout/DashboardLayout';
-import Resources from './pages/dashboard/Resources';
+import StudentHome from './pages/dashboard/StudentHome';
 import Conversations from './pages/dashboard/Conversations';
 import Lectures from './pages/dashboard/Lectures';
 import Slides from './pages/dashboard/Slides';
@@ -10,6 +10,7 @@ import Archive from './pages/dashboard/Archive';
 import TeacherInteraction from './pages/dashboard/TeacherInteraction';
 import SubjectSelection from './pages/dashboard/SubjectSelection';
 import StudentAnalytics from './pages/dashboard/StudentAnalytics';
+import Voices from './pages/dashboard/Voices';
 import { useAuth } from './context/AuthContext';
 
 // Protected Route Component
@@ -30,6 +31,15 @@ const PublicOnlyRoute = ({ children }) => {
   if (user) return <Navigate to="/dashboard" replace />;
   
   return children;
+};
+
+// Dynamic dashboard index based on user role
+const DashboardIndex = () => {
+  const { role } = useAuth();
+  if (role === 'teacher' || role === 'admin') {
+    return <ClassData />;
+  }
+  return <StudentHome />;
 };
 
 function App() {
@@ -53,7 +63,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Resources />} />
+          <Route index element={<DashboardIndex />} />
           <Route path="subjects" element={<SubjectSelection />} />
           <Route path="interaction" element={<TeacherInteraction />} />
           <Route path="conversations" element={<Conversations />} />
@@ -62,6 +72,7 @@ function App() {
           <Route path="data" element={<ClassData />} />
           <Route path="analytics" element={<StudentAnalytics />} />
           <Route path="archive" element={<Archive />} />
+          <Route path="voices" element={<Voices />} />
         </Route>
 
         {/* Redirect root based on auth status is handled by the routes above */}

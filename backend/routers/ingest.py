@@ -6,13 +6,13 @@ router = APIRouter()
 
 
 @router.post("/file", response_model=IngestResponse)
-def upload_file(file: UploadFile = File(...)):
+def upload_file(subject_id: str = None, file: UploadFile = File(...)):
     """
-    Upload a PDF or TXT file, extract its text, chunk it,
+    Upload a PDF, PPTX or TXT file, extract its text, chunk it,
     embed each chunk with Ollama, and store in ChromaDB.
     """
     file_bytes = file.file.read()
-    return ingest_service.process_file(file.filename, file_bytes)
+    return ingest_service.process_file(file.filename, file_bytes, subject_id)
 
 
 @router.get("/")

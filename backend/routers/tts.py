@@ -12,7 +12,7 @@ No business logic lives here.
 import logging
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 
 from schemas.tts_schema import TTSRequest
@@ -92,3 +92,67 @@ async def list_voices():
         return []
 
     return [p.stem for p in voices_dir.iterdir() if p.suffix in [".wav", ".aac", ".mp3", ".flac"]]
+
+
+@router.post(
+    "/upload",
+    summary="Upload a reference voice file",
+)
+async def upload_voice(voice_id: str, file: UploadFile = File(...)):
+    """
+    Upload a reference voice file (WAV, AAC, MP3, or FLAC) and save it to data/voices/.
+    It will be saved as {voice_id}{ext} and can be used as a speaker reference for TTS.
+    """
+    # Verify file extension
+    ext = os.path.splitext(file.filename)[-1].lower()
+    if ext not in [".wav", ".aac", ".mp3", ".flac"]:
+        raise HTTPException(status_code=400, detail="Unsupported audio format. Use WAV, AAC, MP3, or FLAC.")
+    
+    from pathlib import Path
+    voices_dir = Path("backend/data/voices")
+    voices_dir.mkdir(parents=True, exist_ok=True)
+    
+    target_path = voices_dir / f"{voice_id}{ext}"
+    try:
+        content = await file.read()
+        with open(target_path, "wb") as f:
+            f.write(content)
+        logger.info("Voice file saved to %s", target_path)
+        return {"success": True, "voice_id": voice_id, "filename": file.filename}
+    except Exception as e:
+        logger.error("Failed to save voice file — %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to save voice file: {str(e)}")
+
+
+@router.get(
+    "/voices/{voice_id}",
+    summary="Stream a speaker voice file",
+    response_class=FileResponse,
+)
+async def get_voice_file(voice_id: str):
+    """
+    Stream a speaker voice file by its voice_id.
+    """
+    from pathlib import Path
+    voices_dir = Path("backend/data/voices")
+    extensions = [".wav", ".aac", ".mp3", ".flac"]
+    
+    target_path = None
+    for ext in extensions:
+        candidate = voices_dir / f"{voice_id}{ext}"
+        if candidate.exists():
+            target_path = candidate
+            break
+            
+    if not target_path:
+        raise HTTPException(status_code=404, detail=f"Voice file '{voice_id}' not found.")
+        
+    media_type = "audio/wav"
+    if target_path.suffix == ".aac":
+        media_type = "audio/aac"
+    elif target_path.suffix == ".mp3":
+        media_type = "audio/mpeg"
+    elif target_path.suffix == ".flac":
+        media_type = "audio/flac"
+        
+    return FileResponse(path=str(target_path), media_type=media_type)

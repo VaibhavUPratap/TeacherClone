@@ -32,10 +32,20 @@ function Login() {
     setError("");
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      localStorage.setItem("userRole", role);
-      setGlobalRole(role);
+      
+      // Query database profiles table to get verified user role
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+      
+      const verifiedRole = profile?.role || role || "student";
+      
+      localStorage.setItem("userRole", verifiedRole);
+      setGlobalRole(verifiedRole);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);
@@ -96,6 +106,23 @@ function Login() {
                 <h3>Student</h3>
                 <p>Learn, ask questions, track your progress.</p>
               </motion.div>
+
+              <motion.div
+                className="role-card"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => handleRoleSelect("admin")}
+                role="button"
+                tabIndex={0}
+                id="role-admin"
+                onKeyDown={e => e.key === "Enter" && handleRoleSelect("admin")}
+              >
+                <div className="role-icon-wrapper admin">
+                  <ShieldCheck size={26} strokeWidth={1.8} />
+                </div>
+                <h3>Admin</h3>
+                <p>Upload student voices, teacher lectures, and configure settings.</p>
+              </motion.div>
             </div>
           </motion.main>
         ) : (
@@ -115,7 +142,7 @@ function Login() {
 
             <div className="login-header">
               <div className="role-indicator">
-                {role === "teacher" ? "Faculty" : "Student"} · Sign in
+                {role === "teacher" ? "Faculty" : role === "admin" ? "Admin" : "Student"} · Sign in
               </div>
               <motion.h1
                 initial={{ opacity: 0 }}
@@ -129,7 +156,7 @@ function Login() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.22, duration: 0.35 }}
               >
-                Your AI-powered {role === "teacher" ? "faculty" : "learning"} environment.
+                Your AI-powered {role === "teacher" ? "faculty" : role === "admin" ? "admin" : "learning"} environment.
               </motion.p>
             </div>
 

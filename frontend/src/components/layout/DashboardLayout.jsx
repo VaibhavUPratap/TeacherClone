@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -15,6 +15,7 @@ import {
   User,
   Bell,
   Search,
+  Loader2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -51,9 +52,75 @@ export default function DashboardLayout() {
   const { user, role, supabase } = useAuth();
   const navigate  = useNavigate();
 
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [fileToUpload, setFileToUpload] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [subjectsList, setSubjectsList] = useState([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
+  };
+
+  // Fetch subjects dynamically when the modal opens
+  React.useEffect(() => {
+    if (showUploadModal) {
+      fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/dashboard/subjects`)
+        .then(res => res.json())
+        .then(data => {
+          setSubjectsList(data);
+          if (data.length > 0) {
+            setSelectedSubjectId(data[0].id);
+          }
+        })
+        .catch(err => console.error("Error fetching subjects in layout:", err));
+    }
+  }, [showUploadModal]);
+
+  const handleFileUpload = async (e) => {
+    e.preventDefault();
+    if (!fileToUpload) return;
+
+    setUploading(true);
+    setUploadError("");
+    setUploadSuccess(false);
+
+    const formData = new FormData();
+    formData.append("file", fileToUpload);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/ingest/file?subject_id=${selectedSubjectId}`, 
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || "Ingestion failed");
+      }
+
+      setUploadSuccess(true);
+      setFileToUpload(null);
+      
+      setTimeout(() => {
+        setShowUploadModal(false);
+        setUploadSuccess(false);
+        if (location.pathname === '/dashboard/lectures' || location.pathname === '/dashboard') {
+          window.location.reload();
+        }
+      }, 1500);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setUploadError(err.message || "Failed to upload file.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const displayName = user?.user_metadata?.full_name
@@ -74,7 +141,11 @@ export default function DashboardLayout() {
 
         {/* New Resource CTA — teacher only */}
         {role === 'teacher' && (
-          <button className="new-session-btn" id="new-resource-btn">
+          <button 
+            className="new-session-btn" 
+            id="new-resource-btn"
+            onClick={() => setShowUploadModal(true)}
+          >
             <PlusCircle size={16} strokeWidth={2.2} />
             <span>New Resource</span>
           </button>
@@ -83,10 +154,16 @@ export default function DashboardLayout() {
         {/* Primary nav */}
         <nav className="sidebar-nav" aria-label="Main navigation">
           <p className="nav-label">
-            {role === 'teacher' ? 'Faculty' : 'Student'}
+            {role === 'teacher' ? 'Faculty' : role === 'admin' ? 'Administrator' : 'Student'}
           </p>
 
-          {role === 'teacher' ? (
+          {role === 'admin' ? (
+            <>
+              <SidebarItem icon={LayoutDashboard} label="Dashboard"       path="/dashboard"              active={current === '/dashboard'} />
+              <SidebarItem icon={PlusCircle}       label="Manage Voices"    path="/dashboard/voices"       active={current === '/dashboard/voices'} />
+              <SidebarItem icon={Video}            label="Lectures"         path="/dashboard/lectures"     active={current === '/dashboard/lectures'} />
+            </>
+          ) : role === 'teacher' ? (
             <>
               <SidebarItem icon={LayoutDashboard} label="Class Materials" path="/dashboard"              active={current === '/dashboard'} />
               <SidebarItem icon={BarChart3}       label="Analytics"        path="/dashboard/data"         active={current === '/dashboard/data'} />
@@ -171,6 +248,121 @@ export default function DashboardLayout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Ingestion Upload Modal Overlay */}
+      {showUploadModal && (
+        <div className="teacher-modal-overlay">
+          <div className="teacher-selection-box" style={{ maxWidth: '480px', padding: 'var(--space-xl)' }}>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: 'var(--space-xs)' }}>Upload <span>Study Resource</span></h2>
+            <p style={{ fontSize: '0.875rem', marginBottom: 'var(--space-lg)' }}>Select a PDF, PPTX, or TXT document to ingest into ChromaDB.</p>
+            
+            <form onSubmit={handleFileUpload} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              <div 
+                style={{
+                  border: '2px dashed var(--color-rule)',
+                  borderRadius: '8px',
+                  padding: 'var(--space-xl)',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--color-paper-3)',
+                  transition: 'border-color var(--transition-fast)',
+                  textAlign: 'center'
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    setFileToUpload(e.dataTransfer.files[0]);
+                  }
+                }}
+                onClick={() => document.getElementById('modal-file-input').click()}
+              >
+                <input 
+                  id="modal-file-input"
+                  type="file" 
+                  accept=".pdf,.pptx,.ppt,.txt,.md"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setFileToUpload(e.target.files[0]);
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <FileText size={32} style={{ margin: '0 auto var(--space-xs) auto', color: 'var(--color-muted)' }} />
+                <span style={{ fontSize: '0.875rem', display: 'block', fontWeight: 600 }}>
+                  {fileToUpload ? fileToUpload.name : "Drag & Drop or Click to browse"}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-subtle)', marginTop: '4px', display: 'block' }}>
+                  Supports PDF, PPTX, TXT or Markdown
+                </span>
+              </div>
+
+              <div className="input-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-muted)' }}>Associate with Subject</label>
+                <select 
+                  value={selectedSubjectId}
+                  onChange={(e) => setSelectedSubjectId(e.target.value)}
+                  required
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-rule)',
+                    backgroundColor: 'var(--color-paper-3)',
+                    color: 'var(--color-ink)',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {subjectsList.map(sub => (
+                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {uploadError && (
+                <div style={{ color: 'var(--color-danger)', fontSize: '0.8125rem', textAlign: 'left' }}>
+                  ⚠️ {uploadError}
+                </div>
+              )}
+
+              {uploadSuccess && (
+                <div style={{ color: 'var(--color-success)', fontSize: '0.8125rem', fontWeight: 700 }}>
+                  ✓ Resource uploaded and ingested successfully!
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 'var(--space-md)', justifyContent: 'flex-end', marginTop: 'var(--space-sm)' }}>
+                <button 
+                  type="button" 
+                  className="close-btn"
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setFileToUpload(null);
+                    setUploadError("");
+                  }}
+                  disabled={uploading}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="learn-now-btn"
+                  disabled={!fileToUpload || uploading || uploadSuccess}
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Ingesting...</span>
+                    </>
+                  ) : (
+                    <span>Upload & Ingest</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

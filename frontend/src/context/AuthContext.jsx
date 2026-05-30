@@ -11,8 +11,23 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check active sessions and sets the user
     supabase.auth.getSession()
-      .then(({ data: { session } }) => {
+      .then(async ({ data: { session } }) => {
         setUser(session?.user ?? null);
+        if (session?.user) {
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", session.user.id)
+              .single();
+            if (profile?.role) {
+              setRole(profile.role);
+              localStorage.setItem('userRole', profile.role);
+            }
+          } catch (e) {
+            console.warn("Error fetching role on mount:", e);
+          }
+        }
       })
       .catch(err => {
         console.warn("Failed to retrieve Supabase session, using fallback:", err);
@@ -24,11 +39,25 @@ export const AuthProvider = ({ children }) => {
     // Listen for changes on auth state (logged in, signed out, etc.)
     let subscription = null;
     try {
-      const res = supabase.auth.onAuthStateChange((event, session) => {
+      const res = supabase.auth.onAuthStateChange(async (event, session) => {
         setUser(session?.user ?? null);
         if (event === 'SIGNED_OUT') {
           localStorage.removeItem('userRole');
           setRole(null);
+        } else if (session?.user) {
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", session.user.id)
+              .single();
+            if (profile?.role) {
+              setRole(profile.role);
+              localStorage.setItem('userRole', profile.role);
+            }
+          } catch (e) {
+            console.warn("Error fetching role on auth change:", e);
+          }
         }
       });
       subscription = res?.data?.subscription || res?.subscription;

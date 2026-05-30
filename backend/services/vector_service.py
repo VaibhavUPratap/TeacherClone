@@ -69,13 +69,16 @@ class VectorService:
         self,
         query_embedding: list[float],
         n_results: int = 3,
+        subject_id: str = None,
     ) -> list[str]:
         """
         Return the top-n most similar document chunks for a query embedding.
+        Filters by subject_id if provided.
 
         Args:
             query_embedding: Dense float vector for the user's question.
             n_results:       Number of chunks to retrieve.
+            subject_id:      Optional subject ID to filter the RAG context chunks.
 
         Returns:
             A flat list of matching document strings, ordered by relevance.
@@ -87,9 +90,15 @@ class VectorService:
         # Can't request more results than documents stored
         n = min(n_results, total_docs)
 
+        # Build metadata where filter
+        where_filter = None
+        if subject_id:
+            where_filter = {"subject_id": subject_id}
+
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=n,
+            where=where_filter,
             include=["documents"],
         )
 

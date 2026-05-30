@@ -25,10 +25,27 @@ class AuthService:
                 audience="authenticated"
             )
             
+            from config import supabase
+            uid = payload.get("sub")
+            role = "student"
+            
+            if supabase is not None and uid:
+                try:
+                    res = supabase.table("profiles").select("role").eq("id", uid).single().execute()
+                    if res.data and "role" in res.data:
+                        role = res.data["role"]
+                    else:
+                        role = payload.get("user_role", "student")
+                except Exception as db_err:
+                    print(f"Auth DB Role check failed: {db_err}")
+                    role = payload.get("user_role", "student")
+            else:
+                role = payload.get("user_role", "student")
+
             return {
-                "uid": payload.get("sub"), # Subject is the auth.users ID
+                "uid": uid,
                 "email": payload.get("email", ""),
-                "role": payload.get("user_role", "student") # Assuming role is in metadata or app_metadata
+                "role": role
             }
 
         except JWTError as e:

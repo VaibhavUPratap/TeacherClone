@@ -13,7 +13,9 @@ Design principles:
 import asyncio
 import logging
 import os
+import re
 import uuid
+import wave
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -72,6 +74,59 @@ def _run_inference(text: str, speaker_wav: str, language: str, output_path: str)
     )
 
 
+def split_text_into_chunks(text: str, max_chars: int = 250) -> list[str]:
+    """
+    Split text into chunks of maximum length, trying to keep sentences intact.
+    Respects sentence boundaries (. ! ?) and falls back to word-level splits for long sentences.
+    """
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    chunks = []
+    current_chunk = ""
+    for sentence in sentences:
+        if not sentence:
+            continue
+        # If sentence itself is too long, chunk by words
+        if len(sentence) > max_chars:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+                current_chunk = ""
+            words = sentence.split(" ")
+            sub_chunk = ""
+            for word in words:
+                if len(sub_chunk) + len(word) + 1 > max_chars:
+                    chunks.append(sub_chunk.strip())
+                    sub_chunk = word
+                else:
+                    sub_chunk = f"{sub_chunk} {word}" if sub_chunk else word
+            if sub_chunk:
+                current_chunk = sub_chunk
+        else:
+            if len(current_chunk) + len(sentence) + 1 > max_chars:
+                chunks.append(current_chunk.strip())
+                current_chunk = sentence
+            else:
+                current_chunk = f"{current_chunk} {sentence}" if current_chunk else sentence
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+    return chunks
+
+
+def concatenate_wavs(paths: list[str], output_path: str) -> None:
+    """
+    Stitches multiple WAV files together using python's built-in wave module.
+    Assumes all files have the same structure (e.g. same channel count and frame rate).
+    """
+    if not paths:
+        return
+    with wave.open(paths[0], "rb") as first_file:
+        params = first_file.getparams()
+    with wave.open(output_path, "wb") as output_file:
+        output_file.setparams(params)
+        for path in paths:
+            with wave.open(path, "rb") as input_file:
+                output_file.writeframes(input_file.readframes(input_file.getnframes()))
+
+
 # ---------------------------------------------------------------------------
 # Public async API
 # ---------------------------------------------------------------------------
@@ -93,6 +148,7 @@ class TTSService:
     ) -> str:
         """
         Generate a WAV file from *text* and return its file path.
+        Automatically chunks long text and concatenates generated audio files.
 
         Parameters
         ----------
@@ -106,7 +162,7 @@ class TTSService:
 
         Raises
         ------
-        FileNotFoundError  : If the speaker WAV for voice_id is missing.
+        FileNotFoundError  : If the speaker WAV for voice_id is missing and no fallback is found.
         RuntimeError       : If the model could not be loaded at startup.
         """
         # 1. Resolve speaker WAV
@@ -121,34 +177,64 @@ class TTSService:
                 break
                 
         if not speaker_wav:
-            raise FileNotFoundError(
-                f"Speaker reference file not found for voice_id '{voice_id}' in {VOICES_DIR}. "
-                f"Supported extensions: {extensions}"
-            )
-
-        # 2. Truncate text if needed
-        if len(text) > MAX_CHARS:
             logger.warning(
-                "TTS: text truncated from %d to %d chars.", len(text), MAX_CHARS
+                "TTS: voice_id '%s' reference file not found. Finding fallback...",
+                voice_id
             )
-            text = text[:MAX_CHARS]
+            # Find any available file in VOICES_DIR
+            if VOICES_DIR.exists():
+                available_files = [
+                    p for p in VOICES_DIR.iterdir()
+                    if p.suffix in extensions
+                ]
+                if available_files:
+                    speaker_wav = available_files[0]
+                    logger.warning(
+                        "TTS: fallback selected: '%s' instead of '%s'.",
+                        speaker_wav.name,
+                        voice_id
+                    )
+            
+        if not speaker_wav:
+            raise FileNotFoundError(
+                f"Speaker reference file not found for voice_id '{voice_id}' in {VOICES_DIR}, "
+                f"and no fallback voice was found. Supported extensions: {extensions}"
+            )
 
-        # 3. Unique output filename
-        output_path = str(AUDIO_DIR / f"{uuid.uuid4().hex}.wav")
+        # 2. Split text into chunks (XTTS works best with sentence-level chunks <250 chars)
+        chunks = split_text_into_chunks(text, max_chars=250)
+        logger.info("TTS: splitting text into %d chunks for generation.", len(chunks))
 
-        # 4. Offload blocking inference to thread pool (never blocks event loop)
+        # 3. Generate audio files for each chunk sequentially in thread pool
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            _executor,
-            _run_inference,
-            text,
-            str(speaker_wav),
-            language,
-            output_path,
-        )
-
-        logger.info("TTS: audio saved → %s", output_path)
-        return output_path
+        temp_files = []
+        try:
+            for idx, chunk in enumerate(chunks):
+                temp_path = str(AUDIO_DIR / f"chunk_{uuid.uuid4().hex}.wav")
+                logger.info("TTS: generating chunk %d/%d (%d chars)", idx + 1, len(chunks), len(chunk))
+                await loop.run_in_executor(
+                    _executor,
+                    _run_inference,
+                    chunk,
+                    str(speaker_wav),
+                    language,
+                    temp_path,
+                )
+                temp_files.append(temp_path)
+            
+            # 4. Stitch WAV files together
+            output_path = str(AUDIO_DIR / f"{uuid.uuid4().hex}.wav")
+            concatenate_wavs(temp_files, output_path)
+            logger.info("TTS: combined audio saved → %s", output_path)
+            return output_path
+        finally:
+            # Clean up temporary chunk files
+            for temp_file in temp_files:
+                if os.path.exists(temp_file):
+                    try:
+                        os.remove(temp_file)
+                    except Exception as e:
+                        logger.warning("TTS: failed to remove temp file %s — %s", temp_file, e)
 
 
 # ---------------------------------------------------------------------------

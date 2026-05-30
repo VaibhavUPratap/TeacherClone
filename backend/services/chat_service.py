@@ -252,9 +252,11 @@ class ChatService:
         try:
             query_embedding = self._get_question_embedding(question)
             if query_embedding:
+                subject_id = teacher["subject_id"] if teacher else None
                 context_chunks = vector_service.query_similar(
                     query_embedding=query_embedding,
                     n_results=3,
+                    subject_id=subject_id
                 )
                 if context_chunks:
                     context_text = "\n\n---\n\n".join(

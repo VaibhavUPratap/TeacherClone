@@ -1,13 +1,12 @@
 # TeacherClone - Project Context
 
-**Last Updated**: May 20, 2026
+**Last Updated**: May 31, 2026
 
 ## 📋 Project Overview
 
-TeacherClone is an AI-powered educational tutoring assistant that helps students learn through intelligent conversations. It uses Retrieval-Augmented Generation (RAG) to provide accurate, context-aware answers based on uploaded study materials (PDFs/textbooks). The application features real-time streaming, local text-to-speech, analytics dashboards, and secure authentication.
+TeacherClone is an AI‑powered educational tutoring assistant that helps students learn through intelligent conversations. It uses Retrieval‑Augmented Generation (RAG) to provide accurate, context‑aware answers based on uploaded study materials (PDFs/textbooks). The application features real‑time streaming, local text‑to‑speech, analytics dashboards, and secure authentication.
 
-**Repository**: VaibhavUPratap/TeacherClone  
-**Git Root**: `D:\Projects\TeacherClone.worktrees\agents-create-context-md-file-update`
+**Repository**: VaibhavUPratap/TeacherClone
 
 ---
 
@@ -21,22 +20,22 @@ TeacherClone is an AI-powered educational tutoring assistant that helps students
 - **Database**: MongoDB (historical data & user interactions)
 - **AI Models**:
   - Ollama (llama3 & nomic-embed-text for local inference)
-  - OpenAI GPT-4o (fallback)
-- **Text-to-Speech**: Coqui XTTS-v2 (local inference)
+  - OpenAI GPT‑4o (fallback)
+- **Text‑to‑Speech**: Coqui XTTS‑v2 (local inference)
 - **Authentication**: Firebase Admin SDK + JWT
 - **Password Hashing**: bcrypt via passlib
 
 #### Frontend
-- **Framework**: React 18.3.1 (with JSX)
-- **Build Tool**: Vite 5.4.10
+- **Framework**: React 18 (with JSX)
+- **Build Tool**: Vite 5 (fast dev server & bundler)
 - **State Management**: React Hooks & Context API
-- **Routing**: React Router v7.14.2
-- **Backend Integration**: Supabase.js, Axios/Fetch
+- **Routing**: React Router v7
+- **Backend Integration**: Supabase.js, Axios / Fetch
 - **UI Libraries**:
   - Framer Motion (animations)
   - Lucide React (icons)
   - Recharts (charts/analytics)
-- **Styling**: CSS (glassmorphism design)
+- **Styling**: CSS with glassmorphism design
 
 #### Infrastructure
 - **Authentication**: Firebase & Supabase
@@ -49,353 +48,136 @@ TeacherClone is an AI-powered educational tutoring assistant that helps students
 
 ```
 TeacherClone/
-├── backend/
-│   ├── main.py                 # FastAPI entry point
-│   ├── config.py               # Configuration & environment setup
-│   ├── requirements.txt         # Python dependencies
-│   │
-│   ├── routers/                # API endpoint definitions
-│   │   ├── auth.py             # Authentication endpoints
-│   │   ├── chat.py             # Chat/conversational endpoints
-│   │   ├── ingest.py           # Document upload & ingestion
-│   │   ├── dashboard.py        # Analytics & dashboard data
-│   │   └── tts.py              # Text-to-speech endpoints
-│   │
-│   ├── services/               # Business logic
-│   │   ├── auth_service.py     # User authentication
-│   │   ├── chat_service.py     # Chat orchestration
-│   │   ├── ingest_service.py   # Document processing & chunking
-│   │   ├── knowledge_base.py   # RAG & vector search
-│   │   ├── vector_service.py   # ChromaDB interaction
-│   │   ├── teacher_service.py  # Teacher/AI service logic
-│   │   ├── tts_service.py      # Text-to-speech synthesis
-│   │   └── dashboard_service.py # Analytics & metrics
-│   │
-│   ├── schemas/                # Pydantic models (request/response)
-│   │   ├── auth_schema.py
-│   │   ├── chat_schema.py
-│   │   ├── ingest_schema.py
-│   │   ├── dashboard_schema.py
-│   │   └── tts_schema.py
-│   │
-│   ├── data/                   # Local data storage
-│   ├── scratch/                # Experimental/test files
-│   └── static/audio/           # Generated TTS audio files
+├── backend/                 # FastAPI server
+│   ├── main.py
+│   ├── config.py
+│   ├── requirements.txt
+│   ├── routers/            # API route definitions
+│   ├── services/           # Business logic
+│   ├── schemas/            # Pydantic models
+│   ├── data/               # Local storage
+│   └── static/audio/       # Generated TTS files
 │
-├── frontend/
-│   ├── index.html              # HTML entry point
-│   ├── vite.config.js          # Vite configuration
-│   ├── package.json            # Node dependencies & scripts
-│   ├── package-lock.json
-│   │
+├── frontend/                # React SPA
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── package.json
 │   └── src/
-│       ├── main.jsx            # React app entry
-│       ├── App.jsx             # Root component
-│       ├── index.css           # Global styles
-│       ├── widgets.css         # Component styles
-│       │
+│       ├── main.jsx
+│       ├── App.jsx
+│       ├── index.css
+│       ├── widgets.css
 │       ├── pages/
-│       │   ├── Login.jsx       # Login/auth page
-│       │   ├── Home.jsx        # Landing page
+│       │   ├── Login.jsx
+│       │   ├── Home.jsx
 │       │   └── dashboard/
-│       │       ├── TeacherInteraction.jsx    # Chat with AI teacher
-│       │       ├── SubjectSelection.jsx      # Subject picker
-│       │       ├── StudentAnalytics.jsx      # Learning analytics
-│       │       ├── Conversations.jsx         # Chat history
-│       │       ├── Resources.jsx             # Uploaded materials
-│       │       ├── Lectures.jsx              # Course lectures
-│       │       ├── Slides.jsx                # Presentation slides
-│       │       ├── ClassData.jsx             # Class information
-│       │       └── Archive.jsx               # Archived content
-│       │
+│       │       ├── TeacherInteraction.jsx
+│       │       ├── SubjectSelection.jsx
+│       │       ├── StudentAnalytics.jsx
+│       │       ├── Conversations.jsx
+│       │       ├── Resources.jsx
+│       │       ├── Lectures.jsx
+│       │       ├── Slides.jsx
+│       │       ├── ClassData.jsx
+│       │       └── Archive.jsx
 │       ├── components/
-│       │   ├── Dashboard.jsx            # Main dashboard layout
-│       │   ├── StudentChat.jsx          # Chat interface (duplicate?)
+│       │   ├── Dashboard.jsx
+│       │   ├── StudentChat.jsx
 │       │   └── chat/
-│       │       ├── StudentChat.jsx      # Chat component
-│       │       └── MessageRenderer.jsx  # Message formatting
-│       │
+│       │       ├── StudentChat.jsx
+│       │       └── MessageRenderer.jsx
 │       ├── layout/
-│       │   └── DashboardLayout.jsx      # Dashboard layout wrapper
-│       │
+│       │   └── DashboardLayout.jsx
 │       ├── api/
-│       │   └── api.js                   # HTTP client & API calls
-│       │
+│       │   └── api.js            # HTTP client wrapper
 │       ├── context/
-│       │   └── AuthContext.jsx          # Authentication context
-│       │
-│       └── supabase.js                  # Supabase client config
+│       │   └── AuthContext.jsx   # Global auth state
+│       └── supabase.js           # Supabase client config
 │
-├── supabase/                   # Supabase configuration (if used)
-├── .env.example               # Environment variables template
-├── README.md                  # Project README
-├── LICENSE                    # MIT License
-└── context.md                 # This file
+├── supabase/                # Supabase configuration (optional)
+├── .env.example
+├── README.md
+└── context.md               # This documentation file
 ```
 
 ---
 
-## 🔑 Key Features
+## 🎨 Frontend Architecture & Working
 
-### 1. **Intelligent RAG System**
-- Document ingestion (PDFs via PyMuPDF)
-- Semantic chunking for optimal context
-- Vector embeddings via nomic-embed-text (Ollama)
-- ChromaDB for local vector storage
-- Cosine similarity search for relevant context retrieval
+### Component Hierarchy
+| Layer | Description |
+|-------|-------------|
+| **Pages** | Top‑level route components (Login, Home, Dashboard sections). Each page composes layout and specific feature components. |
+| **Layout** | `DashboardLayout.jsx` provides a consistent header, sidebar, and theming wrapper for all dashboard pages. |
+| **Feature Components** | Individual UI pieces such as `TeacherInteraction.jsx`, `SubjectSelection.jsx`, `StudentAnalytics.jsx`, etc. They focus on a single responsibility and receive data via props or context. |
+| **Reusable UI** | Buttons, cards, charts, and modal components live in `components/` and are styled via `widgets.css` and `index.css`. |
+| **Chat Sub‑tree** | `components/chat/StudentChat.jsx` handles the chat UI, while `MessageRenderer.jsx` formats each message (text, audio, citations). |
+| **Context** | `AuthContext.jsx` exposes authentication state (user, token, logout) to any component via React Context API. |
+| **API Layer** | `api/api.js` centralises all HTTP calls (Axios/Fetch) to the FastAPI backend, handling auth headers and error handling. |
 
-### 2. **Topic Guard**
-- Validates queries are educational in nature
-- Redirects off-topic conversations politely
-- Maintains focus on learning objectives
+### State Management
+- **Global Auth State** – `AuthContext` supplies `user`, `accessToken`, and helper functions (`login`, `logout`). Components subscribe via `useContext(AuthContext)`. 
+- **Local UI State** – Individual components manage their own UI state (selected subject, chart filters) using `useState` and `useReducer` when complexity grows. 
+- **Data Fetching** – `useEffect` triggers API calls on mount; responses are stored in component state or lifted to context if shared across pages. 
+- **Streaming Responses** – Chat component initiates a `fetch` request with `ReadableStream` to receive token‑by‑token data. Incoming tokens are appended to a message buffer, creating a smooth typing animation powered by Framer Motion. 
 
-### 3. **Local Text-to-Speech**
-- Coqui XTTS-v2 for realistic voice synthesis
-- Runs locally (no external TTS API calls)
-- Audio files stored in `backend/static/audio/`
-- Reduces latency and respects privacy
+### Routing
+- **Public Routes** – `/login` and `/register` are accessible without authentication.
+- **Protected Routes** – All `/dashboard/*` routes are wrapped by `RequireAuth` HOC that redirects unauthenticated users to `/login`.
+- **Dynamic Segments** – Future extensions may include `/dashboard/course/:courseId` using `useParams` for per‑course views.
 
-### 4. **Analytics Dashboard**
-- Learning progress tracking
-- Weak area identification
-- Recent activity visualization (Recharts)
-- Interaction metrics
-
-### 5. **Secure Authentication**
-- Firebase Authentication
-- JWT tokens for API security
-- Password hashing with bcrypt
-- Session management
-
-### 6. **Real-time Streaming**
-- Token-by-token response streaming
-- Natural conversation feel
-- Low-latency interactions
+### Styling & Design System
+- **Glassmorphism** – Base containers use a semi‑transparent backdrop with `backdrop-filter: blur(10px)` for a modern frosted‑glass look.
+- **Theme Variables** – Colors, font families (Inter from Google Fonts), and spacing are defined in CSS custom properties (`--primary`, `--bg`, `--radius`).
+- **Micro‑animations** – Framer Motion adds subtle hover scale, fade‑in, and slide‑up effects for cards and buttons, improving perceived performance.
 
 ---
 
-## 🔌 API Endpoints
+## 🔄 Detailed Workflows
 
-### Authentication (`/auth`)
-- `POST /auth/register` - User registration
-- `POST /auth/login` - User login
-- `POST /auth/logout` - User logout
-- `POST /auth/refresh` - Refresh JWT token
+Below are the end‑to‑end flows that power the application. Each flow starts at the frontend, traverses the API layer, and terminates in a backend service.
 
-### Chat (`/chat`)
-- `POST /chat/message` - Send message to AI teacher (streaming)
-- `GET /chat/history/{user_id}` - Retrieve chat history
-- `DELETE /chat/clear/{user_id}` - Clear chat history
+### 1. Authentication Flow
+```
+User visits /login → Enters credentials → Frontend calls POST /auth/login → Backend validates via Firebase Admin SDK → JWT issued → Frontend stores token in AuthContext → Subsequent API calls include Authorization: Bearer <jwt>
+```
+- **Refresh** – `POST /auth/refresh` renews token before expiry.
+- **Logout** – `POST /auth/logout` revokes server‑side session and clears context.
 
-### Document Ingestion (`/ingest`)
-- `POST /ingest/upload` - Upload PDF/document
-- `GET /ingest/documents/{user_id}` - List user documents
-- `DELETE /ingest/document/{doc_id}` - Delete document
+### 2. Chat (AI Teacher) Flow
+```
+User types a question in StudentChat.jsx → Frontend POST /chat/message (streaming) → chat_service.py retrieves relevant context vectors via vector_service.py → Calls Ollama (or fallback GPT‑4o) → Streams response tokens back → Frontend renders tokens in real‑time using MessageRenderer.jsx → Optional TTS button triggers TTS flow.
+```
+- **State** – Current conversation stored in MongoDB; `GET /chat/history/{user_id}` loads prior messages.
+- **Cancellation** – AbortController can cancel the stream if user navigates away.
 
-### Text-to-Speech (`/tts`)
-- `POST /tts/generate` - Generate audio from text
-- `GET /tts/audio/{audio_id}` - Retrieve generated audio
+### 3. Document Ingestion Flow
+```
+User uploads PDF via Resources.jsx → Frontend POST /ingest/upload (multipart) → ingest_service.py extracts text with PyMuPDF → Text split into semantic chunks → Embeddings generated via nomic‑embed-text (Ollama) → Vectors stored in ChromaDB → Metadata (docId, page) attached for later retrieval.
+```
+- **Progress UI** – Upload component shows a progress bar; backend returns ingestion status.
 
-### Dashboard (`/dashboard`)
-- `GET /dashboard/analytics/{user_id}` - Get user analytics
-- `GET /dashboard/activity/{user_id}` - Get recent activity
-- `GET /dashboard/progress` - Get learning progress metrics
+### 4. Text‑to‑Speech (TTS) Flow
+```
+User clicks "Read aloud" on a chat message → Frontend POST /tts/generate with text payload → tts_service.py runs Coqui XTTS‑v2 → Audio file saved to backend/static/audio/ → Endpoint GET /tts/audio/{audio_id} returns URL → Frontend streams audio via HTMLAudioElement.
+```
+- **Caching** – Generated audio IDs are stored in MongoDB to avoid recomputation.
 
----
+### 5. Analytics Dashboard Flow
+```
+Dashboard mounts StudentAnalytics.jsx → Frontend GET /dashboard/analytics/{user_id} → dashboard_service.py aggregates interaction metrics from MongoDB (message counts, topics, timestamps) → Returns JSON payload → Recharts renders line/bar charts; filters allow date range selection.
+```
+- **Real‑time Updates** – Optional WebSocket can push new analytics data when a session ends.
 
-## ⚙️ Configuration & Environment
-
-### Backend Environment Variables (`.env`)
-```env
-# OpenAI
-OPENAI_API_KEY=your_key
-
-# JWT Security
-JWT_SECRET=your_secret
-
-# Firebase Admin SDK
-FIREBASE_CREDENTIALS_PATH=backend/firebase_admin.json
-
-# Ollama (local AI)
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3
-
-# Frontend Integration
-VITE_API_BASE_URL=http://localhost:8000
+### 6. Resource Listing Flow
+```
+User navigates to Resources.jsx → Frontend GET /ingest/documents/{user_id} → ingest_service.py queries MongoDB for uploaded documents → Returns list with metadata (title, size, page count) → UI displays cards with preview & delete option (DELETE /ingest/document/{doc_id}).
 ```
 
-### Required Ollama Models
-```bash
-ollama pull llama3           # Main LLM
-ollama pull nomic-embed-text # Embeddings
-```
-
-### Configuration File (`backend/config.py`)
-- Loads environment variables via `python-dotenv`
-- Initializes Supabase client
-- Sets up MongoDB connection (if configured)
-- Configures Ollama connection parameters
-
----
-
-## 🚀 Running the Application
-
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- Ollama installed and running
-- MongoDB instance (local or Atlas)
-- Firebase project with admin credentials
-
-### Backend Startup
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-API runs on: `http://localhost:8000`
-
-### Frontend Startup
-```bash
-cd frontend
-npm install
-npm run dev
-```
-App runs on: `http://localhost:5173` (Vite default)
-
-### Build for Production
-**Frontend**:
-```bash
-npm run build  # Creates optimized dist/
-npm run preview
-```
-
----
-
-## 📦 Dependencies Summary
-
-### Backend (Python)
-| Package | Purpose |
-|---------|---------|
-| `fastapi` | Web framework |
-| `uvicorn` | ASGI server |
-| `chromadb` | Vector database |
-| `pymongo` | MongoDB driver |
-| `openai` | OpenAI API client |
-| `supabase` | Supabase client |
-| `TTS` (Coqui) | Text-to-speech |
-| `torch` | Deep learning (for TTS) |
-| `python-jose` | JWT handling |
-| `passlib[bcrypt]` | Password hashing |
-| `pymupdf` | PDF parsing |
-| `httpx` | Async HTTP client |
-| `pydantic` | Data validation |
-
-### Frontend (Node)
-| Package | Purpose |
-|---------|---------|
-| `react` | UI framework |
-| `react-router-dom` | Client routing |
-| `@supabase/supabase-js` | Supabase client |
-| `firebase` | Firebase integration |
-| `framer-motion` | Animations |
-| `lucide-react` | Icons |
-| `recharts` | Charts/visualization |
-| `vite` | Build tool |
-
----
-
-## 🔄 Data Flow
-
-### Chat Flow
-```
-User Input 
-  → Frontend (StudentChat.jsx) 
-  → API POST /chat/message 
-  → chat_service.py (orchestration)
-  → vector_service.py (retrieve context from ChromaDB)
-  → chat_service.py (call Ollama/GPT-4o)
-  → Response streaming (token-by-token)
-  → Frontend renders in real-time
-```
-
-### Document Ingestion Flow
-```
-User uploads PDF 
-  → Frontend (Resources.jsx) 
-  → API POST /ingest/upload 
-  → ingest_service.py (extract & chunk text)
-  → vector_service.py (generate embeddings)
-  → ChromaDB (store vectors)
-```
-
-### TTS Flow
-```
-"Read aloud" button clicked 
-  → Frontend 
-  → API POST /tts/generate 
-  → tts_service.py (Coqui XTTS-v2)
-  → Audio file generated 
-  → Served from /static/audio/
-  → Frontend plays audio
-```
-
----
-
-## 🛡️ Security Considerations
-
-1. **CORS Middleware**: Currently allows all origins (`allow_origins=["*"]`) — should be restricted in production
-2. **Firebase Auth**: Validates users server-side
-3. **JWT Tokens**: Sign requests to API
-4. **Password Security**: bcrypt with passlib
-5. **Environment Variables**: Sensitive keys in `.env` (not committed)
-
----
-
-## 🐛 Known Issues / TODOs
-
-- ✅ CORS configuration too permissive (needs production scoping)
-- ⚠️ Duplicate `StudentChat.jsx` in components/ (clean up)
-- ⚠️ MongoDB connection not yet documented
-- ⚠️ Error handling could be more robust
-
----
-
-## 📝 Notes for Development
-
-### Backend Service Pattern
-- Services handle business logic (auth_service, chat_service, etc.)
-- Routers define HTTP endpoints and delegate to services
-- Schemas validate input/output with Pydantic
-
-### Frontend Component Structure
-- Pages: Full-page components (Login, Home, Dashboard sections)
-- Components: Reusable UI components
-- Context: Global state (AuthContext)
-- API: HTTP client wrapper
-
-### Streaming Implementation
-- FastAPI supports SSE (Server-Sent Events) for streaming
-- Frontend uses `fetch()` with response body streaming
-- Messages rendered incrementally for better UX
-
-### Vector Search Optimization
-- ChromaDB uses cosine similarity by default
-- Results filtered by relevance threshold
-- Metadata (document ID, page #) attached to vectors
-
----
-
-## 🔗 Related Resources
-
-- [FastAPI Docs](https://fastapi.tiangolo.com/)
-- [ChromaDB Guide](https://docs.trychroma.com/)
-- [React Documentation](https://react.dev/)
-- [Ollama Models](https://ollama.ai/)
-- [Coqui TTS](https://github.com/coqui-ai/TTS)
-- [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
+### 7. Error Handling & Fallbacks
+- API responses include a standard `{ success: boolean, data?: any, error?: string }` shape.
+- Frontend globally intercepts 401/403 to trigger logout.
+- Network errors display toast notifications via a reusable `Toast` component.
 
 ---
 
@@ -404,14 +186,24 @@ User uploads PDF
 | Task | Command |
 |------|---------|
 | Install backend deps | `pip install -r backend/requirements.txt` |
-| Install frontend deps | `npm install` (in frontend/) |
+| Install frontend deps | `npm install` (in `frontend/`) |
 | Start backend | `uvicorn backend/main:app --reload` |
-| Start frontend | `npm run dev` (in frontend/) |
-| Build frontend | `npm run build` (in frontend/) |
+| Start frontend | `npm run dev` (in `frontend/`) |
+| Build frontend | `npm run build` (in `frontend/`) |
 | Run Ollama | `ollama serve` |
 | Pull Ollama models | `ollama pull llama3 nomic-embed-text` |
 
 ---
 
-**Maintained By**: TeacherClone Team  
+## 📚 Additional Resources
+- FastAPI Docs: https://fastapi.tiangolo.com/
+- ChromaDB Guide: https://docs.trychroma.com/
+- React Documentation: https://react.dev/
+- Ollama Models: https://ollama.ai/
+- Coqui TTS: https://github.com/coqui-ai/TTS
+- Firebase Admin SDK: https://firebase.google.com/docs/admin/setup
+
+---
+
+**Maintained By**: TeacherClone Team
 **License**: MIT
