@@ -1,50 +1,40 @@
-from firebase_admin import auth
 from fastapi import HTTPException, status
-
+from jose import jwt, JWTError
+from config import settings
 
 class AuthService:
     """
-    Service responsible for verifying Firebase ID tokens.
-    The backend NEVER performs login — it only validates tokens issued by Firebase.
+    Service responsible for verifying Supabase JWT tokens.
     """
 
     @staticmethod
-    def verify_token(id_token: str) -> dict:
+    def verify_token(token: str) -> dict:
         """
-        Verifies a Firebase ID token and extracts user identity.
-
-        Args:
-            id_token: The raw Firebase ID token from the Authorization header.
-
-        Returns:
-            dict with 'uid' and 'email' fields.
-
-        Raises:
-            HTTPException 401 if the token is invalid, expired, or revoked.
+        Verifies a Supabase JWT token and extracts user identity.
         """
+        if not settings.JWT_SECRET:
+            raise HTTPException(status_code=500, detail="JWT_SECRET is not configured.")
+
         try:
-            decoded = auth.verify_id_token(id_token, check_revoked=True)
+            # Supabase tokens are signed with the project's JWT_SECRET using HS256
+            # The 'aud' is usually 'authenticated'
+            payload = jwt.decode(
+                token, 
+                settings.JWT_SECRET, 
+                algorithms=["HS256"], 
+                audience="authenticated"
+            )
+            
             return {
-                "uid": decoded["uid"],
-                "email": decoded.get("email", ""),
+                "uid": payload.get("sub"), # Subject is the auth.users ID
+                "email": payload.get("email", ""),
+                "role": payload.get("user_role", "student") # Assuming role is in metadata or app_metadata
             }
 
-        except auth.RevokedIdTokenError:
+        except JWTError as e:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has been revoked. Please sign in again.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        except auth.ExpiredIdTokenError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired. Please sign in again.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        except auth.InvalidIdTokenError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid Firebase ID token.",
+                detail=f"Invalid or expired Supabase JWT token: {str(e)}",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         except Exception as e:
@@ -53,6 +43,5 @@ class AuthService:
                 detail=f"Token verification failed: {str(e)}",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-
 
 auth_service = AuthService()

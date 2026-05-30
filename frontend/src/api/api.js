@@ -1,11 +1,19 @@
+import { supabase } from '../supabase';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export async function apiRequest(path, options = {}) {
   const url = `${API_BASE_URL}${path}`;
+  
+  // Get current session token
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
   const response = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
   });

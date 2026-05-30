@@ -1,39 +1,21 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
-import firebase_admin
-from firebase_admin import credentials
+from supabase import create_client, Client
 
 load_dotenv()
-
-# ---------------------------------------------------------------------------
-# Firebase Admin SDK Initialization
-# Place your downloaded service-account JSON at backend/firebase_admin.json
-# ---------------------------------------------------------------------------
-_FIREBASE_CRED_PATH = os.getenv(
-    "FIREBASE_CREDENTIALS_PATH",
-    os.path.join(os.path.dirname(__file__), "firebase_admin.json"),
-)
-
-if not firebase_admin._apps:
-    if os.path.exists(_FIREBASE_CRED_PATH):
-        cred = credentials.Certificate(_FIREBASE_CRED_PATH)
-        firebase_admin.initialize_app(cred)
-        print(f"[OK] Firebase Admin SDK initialized from: {_FIREBASE_CRED_PATH}")
-    else:
-        print(
-            f"[WARNING] Firebase credentials not found at '{_FIREBASE_CRED_PATH}'. "
-            "Token verification will fail until the file is placed there."
-        )
-
-# ---------------------------------------------------------------------------
 
 class Settings(BaseSettings):
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     JWT_SECRET: str = os.getenv("JWT_SECRET", "supersecret")
 
-    # Firebase
-    FIREBASE_CREDENTIALS_PATH: str = _FIREBASE_CRED_PATH
+    # Supabase Settings
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+
+    # Supabase Settings
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
     # Ollama Settings
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -47,3 +29,17 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()
+
+# ---------------------------------------------------------------------------
+# Supabase Client Initialization
+# ---------------------------------------------------------------------------
+supabase: Client | None = None
+if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY:
+    try:
+        supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+        print("[OK] Supabase client initialized securely.")
+    except Exception as e:
+        print(f"[ERROR] Failed to initialize Supabase client: {e}")
+else:
+    print("[WARNING] Supabase credentials not found in environment variables.")
+

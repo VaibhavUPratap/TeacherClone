@@ -5,7 +5,9 @@ python-dotenv
 openai
 pydantic
 pydantic-settings
-firebase-admin
+supabase
+python-jose[cryptography]
+passlib[bcrypt]
 pymongo
 httpx
 python-multipart

@@ -10,10 +10,13 @@ import {
   Settings, 
   HelpCircle,
   PlusCircle,
+  Library,
   LogOut,
   User
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const SidebarItem = ({ icon: Icon, label, path, active }) => (
   <Link to={path}>
@@ -32,6 +35,13 @@ const SidebarItem = ({ icon: Icon, label, path, active }) => (
 export default function DashboardLayout() {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { user, role, supabase } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   return (
     <div className="dashboard-container">
@@ -41,19 +51,34 @@ export default function DashboardLayout() {
           <h1 className="logo-text">TEACHER<span>CLONE</span></h1>
         </div>
 
-        <button className="new-session-btn">
-          <PlusCircle size={18} />
-          <span>New Session</span>
-        </button>
+        {role === 'teacher' && (
+          <button className="new-session-btn">
+            <PlusCircle size={18} />
+            <span>New Resource</span>
+          </button>
+        )}
 
         <nav className="sidebar-nav">
-          <p className="nav-label">Main Menu</p>
-          <SidebarItem icon={LayoutDashboard} label="Resources" path="/dashboard" active={currentPath === '/dashboard'} />
-          <SidebarItem icon={MessageSquare} label="Conversations" path="/dashboard/conversations" active={currentPath === '/dashboard/conversations'} />
-          <SidebarItem icon={Video} label="Lectures" path="/dashboard/lectures" active={currentPath === '/dashboard/lectures'} />
-          <SidebarItem icon={FileText} label="Slides" path="/dashboard/slides" active={currentPath === '/dashboard/slides'} />
-          <SidebarItem icon={BarChart3} label="Classroom Data" path="/dashboard/data" active={currentPath === '/dashboard/data'} />
-          <SidebarItem icon={Archive} label="Archive" path="/dashboard/archive" active={currentPath === '/dashboard/archive'} />
+          <p className="nav-label">{role === 'teacher' ? 'Faculty Menu' : 'Student Dashboard'}</p>
+          
+          {role === 'teacher' ? (
+            <>
+              <SidebarItem icon={LayoutDashboard} label="Class Materials" path="/dashboard" active={currentPath === '/dashboard'} />
+              <SidebarItem icon={BarChart3} label="Analytics" path="/dashboard/data" active={currentPath === '/dashboard/data'} />
+              <SidebarItem icon={FileText} label="Slides Manager" path="/dashboard/slides" active={currentPath === '/dashboard/slides'} />
+              <SidebarItem icon={Video} label="Lectures" path="/dashboard/lectures" active={currentPath === '/dashboard/lectures'} />
+              <SidebarItem icon={MessageSquare} label="Student Chats" path="/dashboard/conversations" active={currentPath === '/dashboard/conversations'} />
+              <SidebarItem icon={Archive} label="Archive" path="/dashboard/archive" active={currentPath === '/dashboard/archive'} />
+            </>
+          ) : (
+            <>
+              <SidebarItem icon={LayoutDashboard} label="Choose Teacher" path="/dashboard" active={currentPath === '/dashboard'} />
+              <SidebarItem icon={Library} label="Subjects" path="/dashboard/subjects" active={currentPath === '/dashboard/subjects'} />
+              <SidebarItem icon={MessageSquare} label="Talk to Teacher" path="/dashboard/interaction" active={currentPath === '/dashboard/interaction'} />
+              <SidebarItem icon={BarChart3} label="My Progress" path="/dashboard/analytics" active={currentPath === '/dashboard/analytics'} />
+              <SidebarItem icon={Archive} label="History" path="/dashboard/conversations" active={currentPath === '/dashboard/conversations'} />
+            </>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -64,13 +89,17 @@ export default function DashboardLayout() {
           
           <div className="user-profile glass">
             <div className="user-avatar">
-              <User size={18} />
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+              ) : (
+                <User size={18} />
+              )}
             </div>
             <div className="user-info">
-              <p className="user-name">Vaibhav Pratap</p>
-              <p className="user-role">Administrator</p>
+              <p className="user-name">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</p>
+              <p className="user-role">{role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Academic'}</p>
             </div>
-            <button className="logout-btn">
+            <button className="logout-btn" onClick={handleLogout}>
               <LogOut size={16} />
             </button>
           </div>
@@ -202,6 +231,20 @@ export default function DashboardLayout() {
           height: 20px;
           background: var(--accent-primary);
           border-radius: 0 4px 4px 0;
+        }
+
+        .student-placeholder {
+          padding: 20px;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px dashed rgba(255, 255, 255, 0.1);
+          text-align: center;
+        }
+
+        .student-placeholder p {
+          font-size: 0.75rem;
+          color: var(--text-tertiary);
+          line-height: 1.4;
         }
 
         .sidebar-footer {

@@ -43,9 +43,8 @@ _device = "cuda" if torch.cuda.is_available() else "cpu"
 logger.info("TTS: loading XTTS-v2 model on device=%s …", _device)
 
 try:
-    # Temporarily disabled for diagnosis
-    # from TTS.api import TTS as CoquiTTS
-    _tts_model = None
+    from TTS.api import TTS as CoquiTTS
+    _tts_model = CoquiTTS("tts_models/multilingual/multi-dataset/xtts_v2").to(_device)
 except Exception as _load_err:
     logger.error("TTS: Failed to load XTTS-v2 model — %s", _load_err)
     _tts_model = None
@@ -91,6 +90,7 @@ class TTSService:
         text: str,
         voice_id: str = "vaibhav",
         language: str = "en",
+    ) -> str:
         """
         Generate a WAV file from *text* and return its file path.
 

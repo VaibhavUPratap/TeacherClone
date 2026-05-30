@@ -15,6 +15,14 @@ async def upload_file(file: UploadFile = File(...)):
     return ingest_service.process_file(file.filename, file_bytes)
 
 
+@router.get("/")
+def list_documents():
+    """
+    Lists all documents processed by the system.
+    """
+    return ingest_service.get_all_documents()
+
+
 @router.get("/status/{id}", response_model=StatusResponse)
 def status(id: str):
     """

@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
+@import url('./widgets.css');
+
 :root {
   --bg-primary: #0a0a0c;
   --bg-secondary: #121217;
@@ -100,4 +102,48 @@ button {
 
 .fade-in {
   animation: fadeIn 0.5s ease forwards;
+}
+
+/* Supabase Custom Login Styles */
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.divider not(:empty)::before {
+  margin-right: .5em;
+}
+
+.divider not(:empty)::after {
+  margin-left: .5em;
+}
+
+.google-signin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.google-signin-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
 }

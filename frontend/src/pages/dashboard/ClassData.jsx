@@ -1,27 +1,48 @@
-import React from 'react';
-import { BarChart3, Users, TrendingUp, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BarChart3, Users, TrendingUp, AlertTriangle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
   AreaChart, 
   Area, 
   XAxis, 
   YAxis, 
-  CartesianGrid, 
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-
-const data = [
-  { name: 'Mon', engagement: 4000, resolution: 2400 },
-  { name: 'Tue', engagement: 3000, resolution: 1398 },
-  { name: 'Wed', engagement: 2000, resolution: 9800 },
-  { name: 'Thu', engagement: 2780, resolution: 3908 },
-  { name: 'Fri', engagement: 1890, resolution: 4800 },
-  { name: 'Sat', engagement: 2390, resolution: 3800 },
-  { name: 'Sun', engagement: 3490, resolution: 4300 },
-];
+import { apiRequest } from '../../api/api';
 
 export default function ClassData() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const data = await apiRequest("/dashboard");
+      setStats(data);
+    } catch (err) {
+      console.error("Failed to fetch stats:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mock chart data if real data is sparse, or use recent questions count
+  const chartData = [
+    { name: 'Mon', engagement: 4000 },
+    { name: 'Tue', engagement: 3000 },
+    { name: 'Wed', engagement: 2000 },
+    { name: 'Thu', engagement: 2780 },
+    { name: 'Fri', engagement: 1890 },
+    { name: 'Sat', engagement: 2390 },
+    { name: 'Sun', engagement: 3490 },
+  ];
+
+  if (loading) return <div className="loading-state glass-card"><Loader2 className="animate-spin" /> Loading Class Data...</div>;
+
   return (
     <div className="class-data-page fade-in">
       <header className="page-header">
@@ -38,7 +59,7 @@ export default function ClassData() {
           </div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorEngage" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.3}/>
@@ -79,24 +100,41 @@ export default function ClassData() {
           <div className="glass-card stat-item">
             <div className="stat-icon purple"><Users size={20} /></div>
             <div>
-              <p className="label">Active Students</p>
-              <h4>124</h4>
+              <p className="label">Total Questions</p>
+              <h4>{stats?.total_questions || 0}</h4>
             </div>
           </div>
           <div className="glass-card stat-item">
             <div className="stat-icon blue"><BarChart3 size={20} /></div>
             <div>
-              <p className="label">Avg. Doubt Resolution</p>
-              <h4>94%</h4>
+              <p className="label">Top Topic</p>
+              <h4>{stats?.top_topics?.[0] || "None"}</h4>
             </div>
           </div>
           <div className="glass-card stat-item alert">
             <div className="stat-icon orange"><AlertTriangle size={20} /></div>
             <div>
               <p className="label">Weak Areas</p>
-              <h4>3 Topics Identified</h4>
+              <h4>{stats?.weak_areas?.length || 0} Topics Identified</h4>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="recent-activity glass-card">
+        <h3>Recent Activity</h3>
+        <div className="activity-list">
+          {stats?.recent_questions?.length > 0 ? (
+            stats.recent_questions.map((q, i) => (
+              <div key={i} className="activity-row">
+                <span className="time">{q.time}</span>
+                <span className="question">{q.question}</span>
+                <span className="badge">{q.category}</span>
+              </div>
+            ))
+          ) : (
+            <p className="no-data">No recent activity found.</p>
+          )}
         </div>
       </div>
 
@@ -120,6 +158,26 @@ export default function ClassData() {
         .stat-icon.orange { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
         .stat-item h4 { font-size: 1.25rem; }
         .stat-item .label { font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 2px; }
+        
+        .recent-activity { padding: 24px; }
+        .recent-activity h3 { margin-bottom: 20px; font-size: 1.1rem; }
+        .activity-list { display: flex; flex-direction: column; gap: 12px; }
+        .activity-row { 
+          display: grid; grid-template-columns: 100px 1fr 120px; gap: 16px; 
+          padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.02);
+          align-items: center;
+        }
+        .activity-row .time { color: var(--text-tertiary); font-size: 0.8rem; }
+        .activity-row .question { color: var(--text-primary); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .activity-row .badge { 
+          font-size: 0.7rem; font-weight: 700; text-align: center;
+          background: rgba(99, 102, 241, 0.1); color: #6366f1; padding: 4px 8px; border-radius: 6px;
+        }
+        .no-data { color: var(--text-tertiary); text-align: center; padding: 20px; }
+        
+        .loading-state { height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--accent-primary); }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}} />
     </div>
   );

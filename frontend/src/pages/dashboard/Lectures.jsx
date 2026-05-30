@@ -1,49 +1,67 @@
-import React from 'react';
-import { Video, Play, Clock, Calendar, MoreHorizontal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Video, Play, Clock, Calendar, MoreHorizontal, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { apiRequest } from '../../api/api';
 
 export default function Lectures() {
-  const lectures = [
-    { title: "Advanced Calculus - Week 3", duration: "1h 45m", date: "Oct 12, 2024", status: "Ready" },
-    { title: "Linear Algebra Fundamentals", duration: "55m", date: "Oct 10, 2024", status: "Processing" },
-  ];
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  const fetchDocuments = async () => {
+    try {
+      const data = await apiRequest("/ingest");
+      setDocuments(data);
+    } catch (err) {
+      console.error("Failed to fetch documents:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="loading-state glass-card"><Loader2 className="animate-spin" /> Loading Class Materials...</div>;
 
   return (
     <div className="lectures-page fade-in">
       <header className="page-header">
         <div className="header-text">
-          <h2>Lecture Videos</h2>
-          <p>Recorded sessions and virtual classroom content</p>
+          <h2>Learning Materials</h2>
+          <p>Processed PDFs and study notes for your AI teachers</p>
         </div>
-        <button className="btn-primary">
-          <Video size={18} />
-          Record New
-        </button>
       </header>
 
       <div className="lectures-grid">
-        {lectures.map((lecture, i) => (
-          <motion.div 
-            key={i} 
-            className="glass-card lecture-card"
-            whileHover={{ y: -5 }}
-          >
-            <div className="video-thumbnail glass">
-              <Play size={32} />
-              <span className="duration">{lecture.duration}</span>
-            </div>
-            <div className="lecture-info">
-              <div className="title-row">
-                <h3>{lecture.title}</h3>
-                <button className="more-btn"><MoreHorizontal size={18} /></button>
+        {documents.length > 0 ? (
+          documents.map((doc, i) => (
+            <motion.div 
+              key={i} 
+              className="glass-card lecture-card"
+              whileHover={{ y: -5 }}
+            >
+              <div className="video-thumbnail glass">
+                <Play size={32} />
+                <span className="duration">{doc.chunk_count} Chunks</span>
               </div>
-              <div className="meta-row">
-                <span><Calendar size={14} /> {lecture.date}</span>
-                <span className={`status-badge ${lecture.status.toLowerCase()}`}>{lecture.status}</span>
+              <div className="lecture-info">
+                <div className="title-row">
+                  <h3>{doc.filename}</h3>
+                  <button className="more-btn"><MoreHorizontal size={18} /></button>
+                </div>
+                <div className="meta-row">
+                  <span><Calendar size={14} /> {new Date(doc.timestamp).toLocaleDateString()}</span>
+                  <span className={`status-badge ready`}>Ready</span>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          ))
+        ) : (
+          <div className="no-data-msg">
+            <p>No processed materials found. Upload a PDF in the Resources tab!</p>
+          </div>
+        )}
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
@@ -51,10 +69,6 @@ export default function Lectures() {
         .page-header { display: flex; justify-content: space-between; align-items: flex-end; }
         .header-text h2 { font-size: 2rem; margin-bottom: 4px; }
         .header-text p { color: var(--text-secondary); }
-        .btn-primary { 
-          display: flex; align-items: center; gap: 8px; padding: 10px 20px; 
-          background: var(--accent-primary); color: white; border-radius: 12px; font-weight: 600;
-        }
         .lectures-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
         .lecture-card { overflow: hidden; }
         .video-thumbnail { 
@@ -67,11 +81,15 @@ export default function Lectures() {
         }
         .lecture-info { padding: 20px; }
         .title-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .title-row h3 { font-size: 1rem; }
+        .title-row h3 { font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8125rem; color: var(--text-tertiary); }
         .status-badge { padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.7rem; }
         .status-badge.ready { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        .status-badge.processing { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        
+        .no-data-msg { grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-tertiary); }
+        .loading-state { height: 400px; display: flex; align-items: center; justify-content: center; gap: 16px; color: var(--accent-primary); }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}} />
     </div>
   );

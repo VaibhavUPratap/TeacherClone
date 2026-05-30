@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 
-
-class FirebaseUser(BaseModel):
-    """Schema for a verified Firebase user returned from /auth/me."""
+class SupabaseUser(BaseModel):
+    """Schema for a verified Supabase user returned from /auth/me."""
     uid: str
     email: str
+    role: str = "student"
 
 
 # ── Legacy schemas kept for reference ──────────────────────────────────────
