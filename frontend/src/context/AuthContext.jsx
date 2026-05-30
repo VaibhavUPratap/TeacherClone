@@ -10,21 +10,37 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null);
+      })
+      .catch(err => {
+        console.warn("Failed to retrieve Supabase session, using fallback:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
     // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (event === 'SIGNED_OUT') {
-        localStorage.removeItem('userRole');
-        setRole(null);
-      }
-    });
+    let subscription = null;
+    try {
+      const res = supabase.auth.onAuthStateChange((event, session) => {
+        setUser(session?.user ?? null);
+        if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('userRole');
+          setRole(null);
+        }
+      });
+      subscription = res?.data?.subscription || res?.subscription;
+    } catch (err) {
+      console.warn("Failed to subscribe to auth state changes, using fallback:", err);
+    }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   return (
