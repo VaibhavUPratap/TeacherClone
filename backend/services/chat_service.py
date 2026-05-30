@@ -1,6 +1,5 @@
 import httpx
 import json
-from openai import OpenAI
 from config import settings, supabase
 from .knowledge_base import get_keyword_answer
 from .vector_service import vector_service
@@ -12,7 +11,8 @@ class ChatService:
     """Service to handle chat logic using either OpenAI or Ollama."""
 
     def __init__(self):
-        self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.gemini_key = settings.GEMINI_API_KEY
+        self.gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.gemini_key}"
         self.ollama_url = f"{settings.OLLAMA_BASE_URL}/api/chat"
         self.use_ollama = True  # Set to True to use local Ollama by default
 
@@ -51,7 +51,7 @@ class ChatService:
         if self.use_ollama:
             return self._generate_with_ollama(question)
         else:
-            return self._generate_with_openai(question)
+            return self._generate_with_gemini(question)
 
     def _validate_and_categorize(self, question: str) -> tuple[bool, str]:
         """
@@ -80,13 +80,18 @@ class ChatService:
                     data = response.json()
                     res = json.loads(data["message"]["content"])
             else:
-                response = self.openai_client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"},
-                    temperature=0.0
-                )
-                res = json.loads(response.choices[0].message.content)
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "responseMimeType": "application/json"
+                    }
+                }
+                with httpx.Client(timeout=15.0) as client:
+                    response = client.post(self.gemini_url, json=payload, headers={"Content-Type": "application/json"})
+                    response.raise_for_status()
+                    data = response.json()
+                    content_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                    res = json.loads(content_text)
 
             return res.get("on_topic", True), res.get("category", "General")
         except Exception as e:
@@ -187,39 +192,47 @@ class ChatService:
             }
 
         except Exception as e:
-            print(f"Ollama RAG Error: {e}. Falling back to OpenAI...")
-            return self._generate_with_openai(question)
+            print(f"Ollama RAG Error: {e}. Falling back to Gemini...")
+            return self._generate_with_gemini(question)
 
-    def _generate_with_openai(self, question: str) -> dict:
+    def _generate_with_gemini(self, question: str) -> dict:
         """
-        Generates an answer using OpenAI's GPT-4o model.
+        Generates an answer using Gemini 2.5 Flash model.
         """
         try:
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
+            payload = {
+                "contents": [
                     {
-                        "role": "system", 
-                        "content": (
-                            "You are a helpful teaching assistant named TeacherClone. "
-                            "You ONLY answer questions related to education, school, and learning. "
-                            "If a question is off-topic, politely refuse and redirect to studies."
-                        )
-                    },
-                    {"role": "user", "content": question}
+                        "role": "user",
+                        "parts": [
+                            {
+                                "text": (
+                                    "You are a helpful teaching assistant named TeacherClone. "
+                                    "You ONLY answer questions related to education, school, and learning. "
+                                    "If a question is off-topic, politely refuse and redirect to studies.\n\n"
+                                    f"Student Question: {question}"
+                                )
+                            }
+                        ]
+                    }
                 ],
-                temperature=0.7
-            )
-
-            answer = response.choices[0].message.content
+                "generationConfig": {
+                    "temperature": 0.7
+                }
+            }
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(self.gemini_url, json=payload, headers={"Content-Type": "application/json"})
+                response.raise_for_status()
+                data = response.json()
+                answer = data["candidates"][0]["content"]["parts"][0]["text"]
             
             return {
                 "answer": answer,
-                "source": "OpenAI GPT-4o",
+                "source": "Gemini 2.5 Flash",
                 "confidence": 0.95
             }
         except Exception as e:
-            print(f"OpenAI Error: {e}")
+            print(f"Gemini Error: {e}")
             return {
                 "answer": f"I encountered an error while processing your request: {e}",
                 "source": "Error System",

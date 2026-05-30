@@ -1,4 +1,11 @@
 import os
+import sys
+
+# Prepend Gyan FFmpeg (installed via winget) to PATH dynamically
+ffmpeg_winget_path = r"C:\Users\vaibh\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg.Shared_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build-shared\bin"
+if os.path.exists(ffmpeg_winget_path) and ffmpeg_winget_path not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = ffmpeg_winget_path + os.path.pathsep + os.environ["PATH"]
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -6,7 +13,7 @@ from supabase import create_client, Client
 load_dotenv()
 
 class Settings(BaseSettings):
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     JWT_SECRET: str = os.getenv("JWT_SECRET", "supersecret")
 
     # Supabase Settings

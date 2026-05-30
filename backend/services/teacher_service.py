@@ -154,6 +154,21 @@ class TeacherService:
                 if all_resources:
                     supabase.table("resources").insert(all_resources).execute()
                     print("[OK] Seeded resources.")
+
+            # Check if default voices exist in public.voices
+            try:
+                res = supabase.table("voices").select("id", count="exact").limit(1).execute()
+                if res.count == 0:
+                    default_voices = [
+                        {"id": "dr-rao", "filename": "dr-rao.wav"},
+                        {"id": "ms-priya", "filename": "ms-priya.aac"},
+                        {"id": "prof-sharma", "filename": "prof-sharma.wav"}
+                    ]
+                    supabase.table("voices").insert(default_voices).execute()
+                    print("[OK] Seeded default voices.")
+            except Exception as voice_err:
+                print(f"[WARNING] Seeding voices table failed: {voice_err}")
+
         except Exception as e:
             print(f"[WARNING] Seeding failed: {e}. Ensure tables 'subjects', 'teachers', and 'resources' exist in Supabase.")
 

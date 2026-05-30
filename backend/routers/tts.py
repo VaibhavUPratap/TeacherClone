@@ -118,6 +118,19 @@ async def upload_voice(voice_id: str, file: UploadFile = File(...)):
         with open(target_path, "wb") as f:
             f.write(content)
         logger.info("Voice file saved to %s", target_path)
+
+        # Write metadata to public.voices table in Supabase
+        from config import supabase
+        if supabase is not None:
+            try:
+                supabase.table("voices").upsert({
+                    "id": voice_id,
+                    "filename": f"{voice_id}{ext}"
+                }).execute()
+                logger.info("Successfully recorded voice '%s' in Supabase database.", voice_id)
+            except Exception as db_err:
+                logger.error("Failed to insert voice '%s' in Supabase public.voices table: %s", voice_id, db_err)
+
         return {"success": True, "voice_id": voice_id, "filename": file.filename}
     except Exception as e:
         logger.error("Failed to save voice file — %s", e)

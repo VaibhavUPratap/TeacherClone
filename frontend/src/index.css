@@ -85,20 +85,25 @@ html, body {
 
 /* Irregular Bento Spans */
 #role-teacher {
-  grid-column: span 7 !important;
-  grid-row: span 1 !important;
+  grid-column: span 4 !important;
+  grid-row: 1 !important;
 }
 
 #role-student {
-  grid-column: span 5 !important;
-  grid-row: span 1 !important;
+  grid-column: span 4 !important;
+  grid-row: 1 !important;
+}
+
+#role-admin {
+  grid-column: span 4 !important;
+  grid-row: 1 !important;
 }
 
 /* Decorative Bento Filler */
 .role-options::after {
   content: "ENTRY POINT 01";
   grid-column: span 4 !important;
-  grid-row: span 1 !important;
+  grid-row: 2 !important;
   border: var(--rule-thin) dashed var(--color-muted);
   display: flex;
   align-items: center;
@@ -113,7 +118,7 @@ html, body {
 .role-options::before {
   content: "";
   grid-column: span 8 !important;
-  grid-row: span 1 !important;
+  grid-row: 2 !important;
   background: var(--color-accent);
   border: var(--rule-thick) solid var(--color-ink);
   opacity: 0.1;
@@ -169,11 +174,12 @@ html, body {
     grid-template-columns: 1fr !important;
     grid-auto-rows: auto !important;
   }
-  #role-teacher, #role-student {
+  #role-teacher, #role-student, #role-admin {
     grid-column: span 1 !important;
+    grid-row: auto !important;
   }
   .role-options::after, .role-options::before {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -857,6 +863,11 @@ a {
   box-shadow: 0 0 20px oklch(72% 0.14 148 / 0.25);
 }
 
+.role-icon-wrapper.admin {
+  background: oklch(65% 0.17 280);
+  box-shadow: 0 0 20px oklch(65% 0.17 280 / 0.3);
+}
+
 .back-link {
   background: transparent;
   border: none;
@@ -902,6 +913,71 @@ a {
 /* Glass container kept for login card shadow continuity */
 .glass-container {
   background-color: var(--color-paper-2);
+}
+
+/* ── Google OAuth button ──────────────────────────────────────────────── */
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: var(--radius-input);
+  background-color: var(--color-paper-3);
+  border: 1px solid var(--color-rule);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.btn-google:hover:not(:disabled) {
+  background-color: var(--color-paper-2);
+  border-color: oklch(75% 0.152 65 / 0.45);
+  box-shadow: 0 0 18px oklch(75% 0.152 65 / 0.09);
+  transform: translateY(-1px);
+}
+
+.btn-google:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-google:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-google:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* ── OR divider ───────────────────────────────────────────────────────── */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-subtle);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-rule);
 }
 
 /* ================================================================

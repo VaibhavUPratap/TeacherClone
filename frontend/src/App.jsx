@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import OAuthCallback from './pages/OAuthCallback';
 import DashboardLayout from './components/layout/DashboardLayout';
 import StudentHome from './pages/dashboard/StudentHome';
 import Conversations from './pages/dashboard/Conversations';
@@ -46,14 +47,15 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route 
-          path="/login" 
-          element={
+        <Route path="/login" element={
             <PublicOnlyRoute>
               <Login />
             </PublicOnlyRoute>
           } 
         />
+
+        {/* OAuth callback — must be public, user is mid-authentication */}
+        <Route path="/auth/callback" element={<OAuthCallback />} />
         
         <Route 
           path="/dashboard" 
