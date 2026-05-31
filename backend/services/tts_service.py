@@ -39,20 +39,29 @@ AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 MAX_CHARS = 1000
 
 # ---------------------------------------------------------------------------
-# Load model ONCE — happens when the module is first imported (at startup).
+# Load model ONCE -- happens when the module is first imported (at startup).
 # ---------------------------------------------------------------------------
 _device = "cuda" if torch.cuda.is_available() else "cpu"
-logger.info("TTS: loading XTTS-v2 model on device=%s …", _device)
+
+if _device == "cuda":
+    _gpu_name = torch.cuda.get_device_name(0)
+    _vram_gb  = round(torch.cuda.get_device_properties(0).total_memory / 1e9, 1)
+    logger.info("TTS: GPU detected: %s  |  VRAM: %.1f GB", _gpu_name, _vram_gb)
+    logger.info("TTS: Loading XTTS-v2 on CUDA (expect ~5s load, ~5-10s per inference)")
+else:
+    logger.info("TTS: No GPU -- loading XTTS-v2 on CPU (expect ~3-5 min per inference)")
 
 try:
     from TTS.api import TTS as CoquiTTS
     _tts_model = CoquiTTS("tts_models/multilingual/multi-dataset/xtts_v2").to(_device)
+    logger.info("TTS: XTTS-v2 loaded successfully on %s", _device.upper())
 except Exception as _load_err:
-    logger.error("TTS: Failed to load XTTS-v2 model — %s", _load_err)
+    logger.error("TTS: Failed to load XTTS-v2 model -- %s", _load_err)
     _tts_model = None
 
-# Thread pool for offloading CPU/GPU-bound inference
-_executor = ThreadPoolExecutor(max_workers=2)
+# CUDA is not thread-safe for concurrent TTS inference -- use 1 worker on GPU.
+# CPU can safely parallelize across 2 threads.
+_executor = ThreadPoolExecutor(max_workers=1 if _device == "cuda" else 2)
 
 
 # ---------------------------------------------------------------------------
@@ -72,6 +81,12 @@ def _run_inference(text: str, speaker_wav: str, language: str, output_path: str)
         language=language,
         file_path=output_path,
     )
+
+    # Clear CUDA cache after each chunk on GPU to avoid VRAM fragmentation
+    # on cards with limited memory (e.g. RTX 3050 4GB).
+    if _device == "cuda":
+        import torch
+        torch.cuda.empty_cache()
 
 
 def split_text_into_chunks(text: str, max_chars: int = 250) -> list[str]:
@@ -201,9 +216,13 @@ class TTSService:
                 f"and no fallback voice was found. Supported extensions: {extensions}"
             )
 
-        # 2. Split text into chunks (XTTS works best with sentence-level chunks <250 chars)
-        chunks = split_text_into_chunks(text, max_chars=250)
-        logger.info("TTS: splitting text into %d chunks for generation.", len(chunks))
+        # 2. Split text into chunks.
+        # GPU is faster so we can afford slightly smaller chunks (200 chars) for
+        # better VRAM management. CPU uses 250 chars to reduce overhead.
+        chunk_size = 200 if _device == "cuda" else 250
+        chunks = split_text_into_chunks(text, max_chars=chunk_size)
+        logger.info("TTS: splitting text into %d chunk(s) [device=%s, chunk_size=%d chars]",
+                    len(chunks), _device.upper(), chunk_size)
 
         # 3. Generate audio files for each chunk sequentially in thread pool
         loop = asyncio.get_event_loop()
@@ -225,7 +244,7 @@ class TTSService:
             # 4. Stitch WAV files together
             output_path = str(AUDIO_DIR / f"{uuid.uuid4().hex}.wav")
             concatenate_wavs(temp_files, output_path)
-            logger.info("TTS: combined audio saved → %s", output_path)
+            logger.info("TTS: combined audio saved -> %s", output_path)
             return output_path
         finally:
             # Clean up temporary chunk files

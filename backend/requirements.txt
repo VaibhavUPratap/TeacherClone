@@ -14,8 +14,12 @@ python-multipart
 chromadb
 pymupdf
 
-# TTS — Coqui XTTS-v2 (local inference)
-coqui-tts
+# TTS -- Coqui XTTS-v2 (local inference)
+# NOTE: torch + torchaudio MUST be installed from the CUDA 12.4 index:
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
+# Bare `pip install torch` gives the CPU build which disables GPU acceleration.
+# The entries below are kept for documentation; the index-url flag is required.
+--extra-index-url https://download.pytorch.org/whl/cu124
 torch
 torchaudio
 soundfile
@@ -23,3 +27,10 @@ soundfile
 # and is_torch_greater_or_equal that coqui-tts requires
 transformers==4.49.0
 python-pptx>=0.6.21
+
+# Voice extraction & transcription pipeline
+ffmpeg-python          # Pythonic FFmpeg wrapper for audio/video processing
+pydub                  # High-level audio manipulation (merging, slicing, resampling)
+openai-whisper         # Local speech-to-text transcription (Whisper large-v3)
+webrtcvad              # Google WebRTC Voice Activity Detection for clean segment selection
+numpy                  # Required by whisper + audio processing

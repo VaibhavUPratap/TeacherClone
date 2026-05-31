@@ -60,9 +60,17 @@ backend/data/chroma_db/
 backend/data/audio/
 backend/data/documents/
 backend/data/voices/
+backend/data/videos/
 backend/scratch/
 backend/static/audio/*
 !backend/static/audio/.gitkeep
+
+# Large binary / generated files (safety net)
+*.wav
+*.mp4
+*.aac
+*.mp3
+*.flac
 
 # Firebase service account key (NEVER commit this)
 backend/firebase_admin.json
