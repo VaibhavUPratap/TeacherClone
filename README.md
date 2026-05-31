@@ -1,17 +1,17 @@
 # TeacherClone 🍎
 **Your AI-Powered Educational Companion**
 
-TeacherClone is an intelligent tutoring assistant designed to help students master their subjects through interactive AI conversations. It leverages Retrieval-Augmented Generation (RAG) to provide context-aware answers based on uploaded study materials, ensuring high accuracy and preventing hallucinations.
+TeacherClone is an intelligent tutoring assistant designed to help students master their subjects through interactive AI conversations. It leverages Retrieval-Augmented Generation (RAG) to provide context-aware answers based on uploaded study materials, ensuring high accuracy and preventing hallucinations. It features Google OAuth + email/password auth via Supabase, local text-to-speech using Coqui XTTS-v2, analytics dashboards, and role-based access control.
 
 ---
 
 ## 🚀 Key Features
 
-- **📚 Intelligent RAG System**: Upload PDFs or textbooks and get answers strictly based on the provided context using ChromaDB and Ollama.
+- **📚 Intelligent RAG System**: Upload PDFs or PPTXs and get answers strictly based on the provided context using ChromaDB and Ollama.
 - **🛡️ Topic Guard**: Built-in validation system that keeps the assistant focused on educational content, politely redirecting off-topic queries.
 - **🎙️ Local Text-to-Speech (TTS)**: Realistic audio responses generated locally using Coqui XTTS-v2, allowing students to listen to explanations.
 - **📊 Analytics Dashboard**: Track learning progress, identify weak areas, and view recent activity with a sleek management interface.
-- **🔐 Secure Authentication**: Integrated with Firebase Authentication for a safe and personalized user experience.
+- **🔐 Secure Authentication**: Integrated with Supabase Auth (Email/Password + Google OAuth) for a safe and personalized user experience.
 - **⚡ Real-time Streaming**: Token-by-token response streaming for a natural, low-latency conversation feel.
 
 ---
@@ -19,20 +19,22 @@ TeacherClone is an intelligent tutoring assistant designed to help students mast
 ## 🛠️ Tech Stack
 
 ### Backend
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
-- **Vector Database**: [ChromaDB](https://www.trychroma.com/) (Local RAG)
-- **Database**: [MongoDB](https://www.mongodb.com/) (Historical Data)
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.10+)
+- **Vector Database**: [ChromaDB](https://www.trychroma.com/) (Local RAG document retrieval)
+- **Database**: [Supabase (PostgreSQL)](https://supabase.com/) (Historical Data)
 - **AI Models**: 
-  - [Ollama](https://ollama.com/) (llama3 & nomic-embed-text)
-  - [OpenAI](https://openai.com/) (GPT-4o fallback)
+  - [Ollama](https://ollama.com/) (llama3 & nomic-embed-text) - Primary local inference
+  - [Google Gemini](https://ai.google.dev/) (Gemini 2.5 Flash) - Cloud fallback
 - **TTS**: [Coqui XTTS-v2](https://github.com/coqui-ai/TTS)
-- **Auth**: [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
+- **Auth**: Supabase Auth (JWT)
 
 ### Frontend
-- **Framework**: [React](https://reactjs.org/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **State Management**: React Hooks
-- **Styling**: CSS (Modern aesthetic with glassmorphism)
+- **Framework**: [React 18](https://reactjs.org/)
+- **Build Tool**: [Vite 5](https://vitejs.dev/)
+- **Routing**: React Router v7
+- **State Management**: React Hooks + Context API
+- **Styling**: Vanilla CSS (Modern aesthetic with glassmorphism using OKLCH colours)
+- **Auth Client**: `@supabase/supabase-js`
 
 ---
 
@@ -42,7 +44,7 @@ TeacherClone is an intelligent tutoring assistant designed to help students mast
 - Python 3.10+
 - Node.js 18+
 - [Ollama](https://ollama.com/) installed and running
-- MongoDB instance (local or Atlas)
+- Supabase Project (for Authentication and PostgreSQL)
 
 ### 1. Backend Setup
 ```bash
@@ -65,19 +67,35 @@ ollama pull llama3
 ollama pull nomic-embed-text
 ```
 
-### 4. Environment Variables
-Create a `.env` file in the root directory based on `.env.example`:
+### 4. Database Setup
+Run the SQL migration files located in `supabase/migrations/` sequentially in your Supabase SQL Editor.
+
+### 5. Environment Variables
+Create a `.env` file in the `backend/` directory:
 ```env
-OPENAI_API_KEY=your_key
-FIREBASE_CREDENTIALS_PATH=backend/firebase_admin.json
+GEMINI_API_KEY=your_gemini_key
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3
+```
+
+Create a `.env` file in the `frontend/` directory:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_API_BASE_URL=http://localhost:8000
 ```
+*(Note: The app supports a mock fallback for `@teacherclone.edu` emails if Supabase credentials are not provided.)*
 
 ---
 
 ## 🏃 Running the Application
+
+### Start Ollama (Required for AI features)
+```bash
+ollama serve
+```
 
 ### Start Backend
 ```bash
