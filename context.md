@@ -29,7 +29,7 @@ TeacherClone is an AI-powered educational tutoring platform. Students select a s
   - Extracts 25s of clean sustained speech from lecture MP4s as speaker references
   - Per-teacher audio tuning: skip_intro_s, loudnorm normalization, VAD aggressiveness
   - All voices normalized to EBU R128 standard (-16 dB LUFS)
-- **Transcription**: OpenAI Whisper (local, `openai-whisper`) — Phase 2, not yet run
+- **Transcription**: OpenAI Whisper (local, `openai-whisper`) — Phase 2 complete (run on GPU, Whisper base model)
 - **Authentication**: Supabase Auth (JWT) verified by the backend
 - **Password Hashing**: bcrypt via passlib
 - **File Handling**: PyMuPDF (PDF text extraction), python-pptx (PPTX slide extraction)
@@ -532,13 +532,15 @@ All tables have Row Level Security (RLS) enabled.
 - [x] `teacher_service.py` updated with 4 new teachers + `llm` subject (upsert-safe seeding)
 - [x] Supabase `public.voices` + `public.teachers` + `public.subjects` upserted
 
-### Phase 2 — Transcription & RAG ⏳ READY TO RUN
-- [ ] Run `transcribe_lectures.py` — Whisper transcribes each MP4 locally
+### Phase 2 — Transcription & RAG ✅ COMPLETE
+- [x] Run `transcribe_lectures.py` — Whisper transcribes each MP4 locally on GPU (`base` model)
   - Outputs: `data/documents/{voice_id}_transcript.txt`
-  - Ollama extracts personality prompts from transcripts
+  - Ollama (`llama3.2:1b`) extracts personality prompts from transcripts
   - Profiles saved to `data/documents/{voice_id}_profile.json`
-- [ ] Run `ingest_lecture_transcripts.py` — chunks transcripts → ChromaDB
-  - Subject mapping: andrew-ml→ml, david-c→prog, erik-adsa→ds, grant-llm→ml (llm subject coming)
+- [x] Run `ingest_lecture_transcripts.py` — chunks transcripts → ChromaDB
+  - Chunks: 148 total chunks generated using overlap splitting
+  - Embeddings: Generated locally using Ollama (`nomic-embed-text`)
+  - Subject mapping: andrew-ml→ml, david-c→prog, erik-adsa→ds, grant-llm→ml
   - Records in Supabase `public.documents`
 
 ### Phase 3 — Feature Extraction (Future)

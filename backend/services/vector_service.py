@@ -54,7 +54,7 @@ class VectorService:
         if not chunks:
             return
 
-        self.collection.add(
+        self.collection.upsert(
             documents=chunks,
             ids=ids,
             embeddings=embeddings,

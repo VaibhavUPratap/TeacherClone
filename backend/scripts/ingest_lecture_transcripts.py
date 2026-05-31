@@ -78,6 +78,21 @@ def _chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str
     return chunks
 
 
+def _get_embedding(text: str) -> list[float]:
+    """Generate a dense embedding vector for text using Ollama's local API."""
+    import httpx
+    from config import settings
+    url = f"{settings.OLLAMA_BASE_URL}/api/embeddings"
+    payload = {
+        "model": settings.OLLAMA_EMBED_MODEL,
+        "prompt": text,
+    }
+    with httpx.Client(timeout=60.0) as client:
+        response = client.post(url, json=payload)
+        response.raise_for_status()
+    return response.json()["embedding"]
+
+
 def ingest_transcript(
     transcript_path: Path,
     voice_id: str,
@@ -98,26 +113,35 @@ def ingest_transcript(
 
     chunks = _chunk_text(text, chunk_size=450, overlap=50)
     logger.info(
-        "Ingesting '%s' (%s) — %d chunks into collection '%s'",
+        "Ingesting '%s' (%s) — %d chunks for subject '%s'",
         teacher_name, subject, len(chunks), subject_id,
     )
 
-    chunk_ids = [f"{voice_id}-chunk-{i}" for i in range(len(chunks))]
-    metadatas = [
-        {
-            "source": transcript_path.name,
-            "teacher": teacher_name,
-            "subject": subject,
-            "voice_id": voice_id,
-            "chunk_index": str(i),
-        }
-        for i in range(len(chunks))
-    ]
+    chunk_ids = []
+    embeddings = []
+    metadatas = []
+
+    for i, chunk in enumerate(chunks):
+        try:
+            emb = _get_embedding(chunk)
+            embeddings.append(emb)
+            chunk_ids.append(f"{voice_id}-chunk-{i}")
+            metadatas.append({
+                "source": transcript_path.name,
+                "teacher": teacher_name,
+                "subject": subject,
+                "voice_id": voice_id,
+                "chunk_index": i,
+                "subject_id": subject_id,  # CRITICAL for filtering by subject in query_similar
+            })
+        except Exception as exc:
+            logger.error("Failed to generate embedding for chunk %d: %s", i, exc)
+            return 0
 
     vector_service.add_documents(
-        collection_name=subject_id,
-        documents=chunks,
+        chunks=chunks,
         ids=chunk_ids,
+        embeddings=embeddings,
         metadatas=metadatas,
     )
 

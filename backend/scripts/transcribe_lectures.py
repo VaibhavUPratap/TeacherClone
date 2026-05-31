@@ -100,7 +100,10 @@ def transcribe_video(video_path: Path, whisper_model_size: str = "medium") -> st
         )
 
     logger.info("Loading Whisper model '%s'…", whisper_model_size)
-    model = whisper.load_model(whisper_model_size)
+    import torch
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    logger.info("Using device: %s", device)
+    model = whisper.load_model(whisper_model_size, device=device)
 
     logger.info("Transcribing %s (this may take several minutes)…", video_path.name)
     t0 = time.time()
@@ -108,7 +111,7 @@ def transcribe_video(video_path: Path, whisper_model_size: str = "medium") -> st
         str(video_path),
         language="en",
         verbose=False,
-        fp16=False,  # CPU-safe
+        fp16=torch.cuda.is_available(),  # GPU-safe FP16
     )
     elapsed = time.time() - t0
     logger.info("Transcription complete in %.1f s", elapsed)
@@ -120,7 +123,7 @@ def extract_personality_with_ollama(
     transcript: str,
     teacher_name: str,
     subject: str,
-    ollama_model: str = "llama3",
+    ollama_model: str | None = None,
     excerpt_chars: int = 8000,
 ) -> str:
     """
@@ -145,6 +148,8 @@ def extract_personality_with_ollama(
 
     try:
         from config import settings
+        if ollama_model is None:
+            ollama_model = settings.OLLAMA_MODEL
         ollama_url = f"{settings.OLLAMA_BASE_URL}/api/generate"
         logger.info("Calling Ollama %s to extract personality…", ollama_model)
 
