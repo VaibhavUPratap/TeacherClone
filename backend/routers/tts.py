@@ -47,10 +47,24 @@ async def speak(request: TTSRequest):
     Returns a downloadable WAV file (`response.wav`).
     """
     try:
+        # Fetch pacing factor from teacher profile if available
+        pacing_factor = 1.0
+        from pathlib import Path
+        import json
+        profile_path = Path("data/transcripts") / f"{request.voice_id}_profile.json"
+        if profile_path.exists():
+            try:
+                with open(profile_path, "r", encoding="utf-8") as f:
+                    profile = json.load(f)
+                pacing_factor = float(profile.get("pacing_factor", 1.0))
+            except Exception as e:
+                logger.warning("TTS: Failed to load pacing factor from profile: %s", e)
+
         audio_path = await tts_service.generate_audio(
             text=request.text,
             voice_id=request.voice_id,
             language=request.language,
+            pacing_factor=pacing_factor,
         )
     except FileNotFoundError as exc:
         logger.warning("TTS speak: voice file missing — %s", exc)

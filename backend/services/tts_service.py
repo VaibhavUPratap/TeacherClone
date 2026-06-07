@@ -160,6 +160,7 @@ class TTSService:
         text: str,
         voice_id: str = "vaibhav",
         language: str = "en",
+        pacing_factor: float = 1.0,
     ) -> str:
         """
         Generate a WAV file from *text* and return its file path.
@@ -218,7 +219,7 @@ class TTSService:
 
         # 1.5. Cache Lookup
         import hashlib
-        cache_key = hashlib.md5(f"{voice_id}_{language}_{text}".encode("utf-8")).hexdigest()
+        cache_key = hashlib.md5(f"{voice_id}_{language}_{text}_{pacing_factor}".encode("utf-8")).hexdigest()
         output_path = str(AUDIO_DIR / f"{cache_key}.wav")
         if os.path.exists(output_path):
             logger.info("TTS: Cache hit! Returning pre-generated audio for key %s", cache_key)
@@ -252,6 +253,36 @@ class TTSService:
             # 4. Stitch WAV files together
             concatenate_wavs(temp_files, output_path)
             logger.info("TTS: combined audio saved -> %s", output_path)
+            
+            # 4.5. Adjust pacing/speed if required (using FFmpeg's atempo filter)
+            if pacing_factor != 1.0:
+                pacing_factor = max(0.75, min(1.25, pacing_factor))
+                logger.info("TTS: applying pacing speed factor %f using FFmpeg", pacing_factor)
+                
+                speed_adjusted_path = str(AUDIO_DIR / f"speed_{uuid.uuid4().hex}.wav")
+                import subprocess
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-i", output_path,
+                    "-filter:a", f"atempo={pacing_factor}",
+                    speed_adjusted_path
+                ]
+                try:
+                    await loop.run_in_executor(
+                        _executor,
+                        lambda: subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                    )
+                    
+                    if os.path.exists(speed_adjusted_path):
+                        if os.path.exists(output_path):
+                            os.remove(output_path)
+                        os.rename(speed_adjusted_path, output_path)
+                        logger.info("TTS: speed adjustment applied successfully")
+                except Exception as e:
+                    logger.error("TTS: FFmpeg speed adjustment failed: %s", e)
+                    if os.path.exists(speed_adjusted_path):
+                        os.remove(speed_adjusted_path)
+            
             return output_path
         finally:
             # Clean up temporary chunk files

@@ -279,6 +279,36 @@ class ChatService:
         
         if teacher:
             system_prompt = teacher["personality_prompt"]
+            
+            # Load profile features if available to refine the system prompt
+            from pathlib import Path
+            voice_id = teacher.get("voice_id") or teacher_id
+            profile_path = Path("data/transcripts") / f"{voice_id}_profile.json"
+            if profile_path.exists():
+                try:
+                    with open(profile_path, "r", encoding="utf-8") as f:
+                        profile = json.load(f)
+                    
+                    extra_constraints = []
+                    vocab = profile.get("vocabulary_level")
+                    if vocab == "Beginner":
+                        extra_constraints.append("Explain concepts using simple, beginner-friendly language and avoid unnecessary technical jargon.")
+                    elif vocab == "Advanced":
+                        extra_constraints.append("Explain concepts using advanced, mathematically rigorous, and technically detailed terms.")
+                    
+                    freq = profile.get("analogy_frequency")
+                    style = profile.get("analogy_style")
+                    if freq == "High" and style:
+                        extra_constraints.append(f"Frequently use analogies to clarify abstract concepts, drawing specifically from: {style}.")
+                    elif freq == "Medium" and style:
+                        extra_constraints.append(f"Occasionally use analogies when helpful to clarify abstract concepts, drawing from: {style}.")
+                    elif freq == "Low":
+                        extra_constraints.append("Focus on direct, literal explanations and avoid metaphors or analogies.")
+
+                    if extra_constraints:
+                        system_prompt += "\n\nCRITICAL INSTRUCTIONS FOR YOUR STYLE:\n" + "\n".join(f"- {inst}" for inst in extra_constraints)
+                except Exception as e:
+                    print(f"Error loading profile features for prompt refinement: {e}")
 
         # 2. Retrieve Context (RAG)
         context_text = ""

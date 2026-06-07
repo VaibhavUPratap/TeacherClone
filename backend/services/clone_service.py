@@ -114,6 +114,91 @@ def _extract_personality(transcript: str, teacher_name: str, subject: str) -> st
     )
 
 
+def _extract_features(transcript: str, teacher_name: str) -> dict:
+    """Uses LLM (Ollama or Gemini) to extract teaching features from a transcript snippet."""
+    # Take a 6000 character snippet (about 1000 words) from the middle of the transcript
+    start_pos = max(0, len(transcript) // 3)
+    snippet = transcript[start_pos : start_pos + 6000]
+
+    prompt = (
+        f"You are a linguistic researcher analyzing a teacher's lecture transcript. "
+        f"Analyze this lecture snippet by teacher '{teacher_name}' to extract the following features:\n\n"
+        f"1. vocabulary_level: Rate the teacher's terminology usage as 'Beginner' (explains basic concepts, minimal jargon), "
+        f"'Intermediate' (typical college-level explanations), or 'Advanced' (highly technical, mathematically rigorous, heavy jargon).\n"
+        f"2. analogy_frequency: Rate how often they use analogies/metaphors as 'High' (constantly uses metaphors to explain concepts), "
+        f"'Medium' (uses analogies occasionally), or 'Low' (uses direct abstract explanations, focusing strictly on math/formulas).\n"
+        f"3. analogy_style: Describe the specific style or source of their analogies (e.g. 'physical landscapes', 'real-world software design', "
+        f"'metaphorical stories', 'visual geometry'). Max 10 words.\n"
+        f"4. pacing_factor: Estimate a recommended playback speed multiplier (between 0.85 and 1.15) for their voice. "
+        f"If they explain very slowly, pause often, or are extremely methodical, recommend 0.90 to 0.95. "
+        f"If they explain at a normal, standard conversational pace, recommend 1.00. "
+        f"If they speak fast, energetic, or with highly compressed explanations, recommend 1.05 to 1.15.\n\n"
+        f"Respond STRICTLY in JSON format: \n"
+        f"{{\n"
+        f"  \"vocabulary_level\": \"Beginner\" | \"Intermediate\" | \"Advanced\",\n"
+        f"  \"analogy_frequency\": \"High\" | \"Medium\" | \"Low\",\n"
+        f"  \"analogy_style\": \"string\",\n"
+        f"  \"pacing_factor\": float\n"
+        f"}}\n\n"
+        f"--- LECTURE SNIPPET ---\n"
+        f"{snippet}"
+    )
+
+    try:
+        import httpx
+        from config import settings
+        use_ollama = settings.USE_OLLAMA
+        gemini_key = settings.GEMINI_API_KEY
+
+        if use_ollama:
+            logger.info("Analyzing clone features with Ollama model: %s", settings.OLLAMA_MODEL)
+            url = f"{settings.OLLAMA_BASE_URL}/api/chat"
+            payload = {
+                "model": settings.OLLAMA_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False,
+                "format": "json"
+            }
+            try:
+                with httpx.Client(timeout=60.0) as client:
+                    r = client.post(url, json=payload)
+                    r.raise_for_status()
+                    res_data = r.json()
+                    content = res_data["message"]["content"]
+                    return json.loads(content)
+            except Exception as e:
+                logger.error("Ollama feature extraction failed: %s. Trying Gemini fallback...", e)
+
+        if gemini_key:
+            logger.info("Analyzing clone features with Gemini 2.5 Flash")
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "responseMimeType": "application/json"
+                }
+            }
+            try:
+                with httpx.Client(timeout=30.0) as client:
+                    r = client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                    r.raise_for_status()
+                    res_data = r.json()
+                    content = res_data["candidates"][0]["content"]["parts"][0]["text"]
+                    return json.loads(content)
+            except Exception as e:
+                logger.error("Gemini feature extraction failed: %s", e)
+
+    except Exception as exc:
+        logger.warning("Feature extraction failed: %s", exc)
+
+    return {
+        "vocabulary_level": "Intermediate",
+        "analogy_frequency": "Medium",
+        "analogy_style": "general examples",
+        "pacing_factor": 1.00
+    }
+
+
 # ---------------------------------------------------------------------------
 # Voice fallback — pick another voice for the same subject
 # ---------------------------------------------------------------------------
@@ -213,10 +298,28 @@ def _run_pipeline(
             logger.warning("Whisper transcription failed: %s", exc)
             transcript = f"Lecture by {teacher_name} on {subject_name}."
 
-        # ── Stage 4: Extract personality ────────────────────────────────────
-        _set_stage(job_id, 75, "Extracting teaching personality with AI...")
+        # ── Stage 4: Extract personality & features ─────────────────────────
+        _set_stage(job_id, 75, "Extracting teaching personality and features with AI...")
         personality_prompt = _extract_personality(transcript, teacher_name, subject_name)
         _jobs[job_id]["personality_prompt"] = personality_prompt
+
+        # Extract features (vocab, analogy, pacing)
+        features = _extract_features(transcript, teacher_name)
+        profile_path = TRANSCRIPTS_DIR / f"{voice_id}_profile.json"
+        try:
+            profile_data = {
+                "voice_id": voice_id,
+                "teacher_name": teacher_name,
+                "vocabulary_level": features.get("vocabulary_level", "Intermediate"),
+                "analogy_frequency": features.get("analogy_frequency", "Medium"),
+                "analogy_style": features.get("analogy_style", "general examples"),
+                "pacing_factor": float(features.get("pacing_factor", 1.00)),
+            }
+            with open(profile_path, "w", encoding="utf-8") as f:
+                json.dump(profile_data, f, indent=2)
+            logger.info("Saved profile JSON for cloned teacher: %s", profile_path)
+        except Exception as exc:
+            logger.error("Failed to save profile JSON for cloned teacher: %s", exc)
 
         # ── Stage 5: Save to Supabase ───────────────────────────────────────
         _set_stage(job_id, 90, "Saving clone to database...")
