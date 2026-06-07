@@ -6,7 +6,7 @@ CLI script — run from the backend/ directory AFTER transcribe_lectures.py:
     python scripts/ingest_lecture_transcripts.py
 
 What it does:
-  1. Reads each *_transcript.txt from data/documents/
+  1. Reads each *_transcript.txt from data/transcripts/
   2. Splits the transcript into ~500-token chunks
   3. Embeds each chunk with Ollama nomic-embed-text
   4. Stores chunks in ChromaDB under the correct subject_id collection
@@ -42,7 +42,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DOCS_DIR = BACKEND_DIR / "data" / "documents"
+TRANSCRIPTS_DIR = BACKEND_DIR / "data" / "transcripts"
 
 BANNER = """
 ╔══════════════════════════════════════════════════════════╗
@@ -173,11 +173,11 @@ def main() -> int:
 
     # ── Find available transcripts ────────────────────────────────────────────
     transcript_files = {p.stem.replace("_transcript", ""): p
-                        for p in DOCS_DIR.glob("*_transcript.txt")}
+                        for p in TRANSCRIPTS_DIR.glob("*_transcript.txt")}
 
     if not transcript_files:
         logger.error(
-            "No transcripts found in %s. Run transcribe_lectures.py first.", DOCS_DIR
+            "No transcripts found in %s. Run transcribe_lectures.py first.", TRANSCRIPTS_DIR
         )
         return 1
 

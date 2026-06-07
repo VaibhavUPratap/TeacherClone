@@ -54,6 +54,25 @@ def _get_embedding(text: str) -> list[float]:
 
 # ── Text extraction ──────────────────────────────────────────────────────────
 
+# Max characters stored in Supabase `resources.content` (prevents huge rows)
+_CONTENT_MAX_CHARS = 12_000
+
+
+def _sanitize_text(text: str) -> str:
+    """
+    Remove characters that Postgres / Supabase cannot store:
+      - Null bytes (\u0000) → '22P05: unsupported Unicode escape sequence'
+      - Other non-printable control chars (except \t \n \r)
+    Also normalise Windows-style line endings.
+    """
+    # Strip null bytes and other non-printable control chars
+    cleaned = "".join(
+        ch for ch in text
+        if ch == "\t" or ch == "\n" or ch == "\r" or (ord(ch) >= 32)
+    )
+    return cleaned.replace("\r\n", "\n").strip()
+
+
 def _extract_text_from_pdf(file_path: str) -> str:
     """Extract all text from a PDF file using PyMuPDF."""
     doc = fitz.open(file_path)
@@ -106,8 +125,14 @@ class IngestService:
         Returns:
             A dict with file_id, chunk_count, and status.
         """
-        # 1. Persist the file
-        file_path = os.path.join(DOCUMENTS_DIR, filename)
+        # 1. Persist the file in subject-specific subdirectory
+        if subject_id:
+            subject_dir = os.path.join(DOCUMENTS_DIR, subject_id)
+            os.makedirs(subject_dir, exist_ok=True)
+            file_path = os.path.join(subject_dir, filename)
+        else:
+            file_path = os.path.join(DOCUMENTS_DIR, filename)
+
         with open(file_path, "wb") as f:
             f.write(file_bytes)
 
@@ -126,11 +151,14 @@ class IngestService:
                 "detail": f"Unsupported file type: {ext}. Upload PDF, PPTX or TXT.",
             }
 
+        # Sanitize immediately — removes null bytes that break Postgres
+        raw_text = _sanitize_text(raw_text)
+
         if not raw_text.strip():
             return {
                 "file_id": None,
                 "status": "error",
-                "detail": "No text could be extracted from the file.",
+                "detail": "No text could be extracted from the file (may be a scanned/image-only PDF).",
             }
 
         # 3. Chunk
@@ -146,11 +174,13 @@ class IngestService:
             embedding = _get_embedding(chunk)
             ids.append(f"{file_id}_{i}")
             embeddings.append(embedding)
-            # Add subject_id to metadata so queries can isolate searches by subject!
+            # Add subject_id and file_id to metadata so queries can isolate searches by subject
+            # and deletions can target specific files.
             metadatas.append({
                 "source": filename, 
                 "chunk_index": i,
-                "subject_id": subject_id or ""
+                "subject_id": subject_id or "",
+                "file_id": file_id
             })
 
         vector_service.add_documents(
@@ -163,6 +193,7 @@ class IngestService:
         from config import supabase
         if supabase is not None:
             try:
+                # Insert record into documents table
                 supabase.table("documents").insert({
                     "file_id": file_id,
                     "filename": filename,
@@ -171,8 +202,31 @@ class IngestService:
                     "status": "completed",
                     "subject_id": subject_id
                 }).execute()
+
+                # Also insert into public.resources so it's visible to students in the Library
+                ext_type_map = {
+                    ".pdf": "Lecture PDF",
+                    ".pptx": "Presentation Slides",
+                    ".ppt": "Presentation Slides",
+                    ".txt": "Study Notes",
+                    ".md": "Study Notes"
+                }
+                res_type = ext_type_map.get(ext, "Study Material")
+                
+                # Truncate content so large files don't exceed Supabase row limits
+                content_preview = raw_text[:_CONTENT_MAX_CHARS]
+
+                supabase.table("resources").insert({
+                    "id": file_id,
+                    "subject_id": subject_id,
+                    "title": filename,
+                    "type": res_type,
+                    "description": f"Ingested study material. Chunks: {len(chunks)}",
+                    "content": content_preview,
+                    "created_at": datetime.now().isoformat()
+                }).execute()
             except Exception as e:
-                print(f"Supabase Ingest Error: {e}")
+                print(f"Supabase Ingest Sync Error: {e}")
 
         return {
             "file_id": file_id,
@@ -197,6 +251,60 @@ class IngestService:
         Legacy status endpoint — real status is reflected by chunk_count above.
         """
         return {"file_id": file_id, "status": "completed"}
+
+    def delete_document(self, file_id: str) -> dict:
+        """
+        Purges a document, its database records (documents and resources),
+        its ChromaDB chunks, and its local file.
+        """
+        from config import supabase
+        filename = None
+        subject_id = None
+        
+        # 1. Fetch filename and subject_id from Supabase to resolve physical path and ChromaDB deletion
+        if supabase is not None:
+            try:
+                response = supabase.table("documents").select("filename, subject_id").eq("file_id", file_id).execute()
+                if response.data:
+                    filename = response.data[0]["filename"]
+                    subject_id = response.data[0].get("subject_id")
+            except Exception as e:
+                print(f"Supabase fetch filename/subject_id error: {e}")
+                
+        # 2. Delete database records
+        if supabase is not None:
+            try:
+                # Delete from public.documents
+                supabase.table("documents").delete().eq("file_id", file_id).execute()
+                # Delete from public.resources
+                supabase.table("resources").delete().eq("id", file_id).execute()
+            except Exception as e:
+                print(f"Supabase delete records error: {e}")
+
+        # 3. Purge vector chunks from ChromaDB
+        try:
+            vector_service.delete_document(file_id=file_id, filename=filename)
+        except Exception as e:
+            print(f"ChromaDB chunk purge error: {e}")
+
+        # 4. Remove physical file
+        if filename:
+            if subject_id:
+                file_path = os.path.join(DOCUMENTS_DIR, subject_id, filename)
+            else:
+                file_path = os.path.join(DOCUMENTS_DIR, filename)
+                
+            # Fallback check at root folder in case it was uploaded before subject folder structuring
+            if not os.path.exists(file_path):
+                file_path = os.path.join(DOCUMENTS_DIR, filename)
+
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    print(f"Physical file removal error: {e}")
+                    
+        return {"status": "success", "detail": f"Document {file_id} deleted successfully."}
 
 
 ingest_service = IngestService()

@@ -7,7 +7,7 @@ import os
 import config  # noqa: F401
 from services.teacher_service import teacher_service
 
-from routers import auth, chat, ingest, tts, dashboard
+from routers import auth, chat, ingest, tts, dashboard, clone
 
 app = FastAPI()
 
@@ -30,6 +30,7 @@ app.include_router(chat.router, prefix="/chat")
 app.include_router(ingest.router, prefix="/ingest")
 app.include_router(tts.router, prefix="/tts")
 app.include_router(dashboard.router, prefix="/dashboard")
+app.include_router(clone.router, prefix="/clone")
 
 @app.on_event("startup")
 async def startup_event():

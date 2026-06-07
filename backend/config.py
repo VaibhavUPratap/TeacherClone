@@ -15,6 +15,7 @@ load_dotenv()
 class Settings(BaseSettings):
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     JWT_SECRET: str = os.getenv("JWT_SECRET", "supersecret")
+    USE_OLLAMA: bool = os.getenv("USE_OLLAMA", "false").lower() in ("true", "1", "t", "yes")
 
     # Supabase Settings
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")

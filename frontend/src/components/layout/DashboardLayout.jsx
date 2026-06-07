@@ -16,6 +16,7 @@ import {
   Bell,
   Search,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -161,6 +162,7 @@ export default function DashboardLayout() {
             <>
               <SidebarItem icon={LayoutDashboard} label="Dashboard"       path="/dashboard"              active={current === '/dashboard'} />
               <SidebarItem icon={PlusCircle}       label="Manage Voices"    path="/dashboard/voices"       active={current === '/dashboard/voices'} />
+              <SidebarItem icon={Sparkles}         label="Clone Studio"     path="/dashboard/clone-studio" active={current === '/dashboard/clone-studio'} />
               <SidebarItem icon={Video}            label="Lectures"         path="/dashboard/lectures"     active={current === '/dashboard/lectures'} />
             </>
           ) : role === 'teacher' ? (

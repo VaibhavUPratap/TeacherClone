@@ -1,140 +1,86 @@
 from config import supabase
 
 SUBJECTS = [
-    {"id": "math", "name": "Mathematics", "icon": "Binary", "description": "Calculus, Algebra, and Statistics", "enrolled_count": 150},
-    {"id": "physics", "name": "Physics", "icon": "Atom", "description": "Mechanics, Optics, and Thermodynamics", "enrolled_count": 120},
-    {"id": "chem", "name": "Chemistry", "icon": "Beaker", "description": "Organic, Inorganic and Physical Chemistry", "enrolled_count": 95},
-    {"id": "prog", "name": "Programming", "icon": "Code", "description": "Python, Java, C, and Systems Programming", "enrolled_count": 200},
-    {"id": "ml", "name": "Machine Learning", "icon": "Brain", "description": "Neural Networks, Data Science, and AI", "enrolled_count": 80},
-    {"id": "ds", "name": "Data Structures & Algorithms", "icon": "Binary", "description": "Arrays, Lists, Trees, Graphs, and Algorithm Design", "enrolled_count": 110},
-    {"id": "llm", "name": "Large Language Models", "icon": "Sparkles", "description": "Transformers, Attention, Fine-tuning, and Prompting", "enrolled_count": 65},
-    {"id": "mech", "name": "Engineering Mechanics", "icon": "Beaker", "description": "Statics and Dynamics for Engineers", "enrolled_count": 75},
+    {"id": "AI",   "name": "Artificial Intelligence",          "icon": "Brain",     "description": "Search, Knowledge, Reasoning, and AI Agents",                  "enrolled_count": 0},
+    {"id": "DAA",  "name": "Design & Analysis of Algorithms",  "icon": "Binary",    "description": "Complexity, Sorting, Graphs, Greedy, DP, and Backtracking",     "enrolled_count": 0},
+    {"id": "DBMS", "name": "Database Management Systems",      "icon": "Database",  "description": "SQL, Normalization, Transactions, and Query Optimization",       "enrolled_count": 0},
+    {"id": "FSD",  "name": "Full Stack Development",           "icon": "Code",      "description": "HTML, CSS, JavaScript, React, Node.js, and REST APIs",          "enrolled_count": 0},
+    {"id": "TNT",  "name": "Transform & Numerical Techniques", "icon": "Sigma",     "description": "Fourier, Laplace, Z-Transforms, and Numerical Methods",          "enrolled_count": 0},
+    {"id": "TOC",  "name": "Theory of Computation",            "icon": "Cpu",       "description": "Automata, Regular Languages, CFGs, Turing Machines",            "enrolled_count": 0},
 ]
 
-# Mock resources for each subject
-RESOURCES = {
-    "math": [
-        {"id": "m1", "title": "Integration Techniques", "type": "Lecture PDF", "description": "Detailed notes on substitution and integration by parts.", "content": "Integration is a fundamental concept in calculus..."},
-        {"id": "m2", "title": "Formula Sheet: Calculus", "type": "Formula Sheet", "description": "All essential derivative and integral formulas.", "content": "d/dx(sin x) = cos x..."},
-        {"id": "m3", "title": "Laplace Transform Notes", "type": "Class Notes", "description": "Step-by-step derivation of Laplace transforms.", "content": "The Laplace transform is an integral transform..."},
-        {"id": "m4", "title": "Previous Year Paper - 2024", "type": "Previous Year Paper", "description": "Standard exam paper for practice.", "content": "Question 1: Evaluate the integral..."},
-    ],
-    "physics": [
-        {"id": "p1", "title": "Quantum Mechanics Intro", "type": "Presentation Slides", "description": "Visual introduction to wave-particle duality.", "content": "Quantum mechanics describes the physical properties of nature at the scale of atoms..."},
-        {"id": "p2", "title": "Electromagnetism Summary", "type": "Concept Summaries", "description": "Quick revision of Maxwell's equations.", "content": "Maxwell's equations are a set of coupled partial differential equations..."},
-        {"id": "p3", "title": "Newtonian Dynamics", "type": "Lecture PDF", "description": "Focus on 3rd law and momentum.", "content": "Newton's third law states that for every action, there is an equal and opposite reaction..."},
-    ],
-    "chem": [
-        {"id": "c1", "title": "Organic Reactions", "type": "Revision Notes", "description": "Summary of SN1 and SN2 mechanisms.", "content": "The SN1 reaction is a substitution reaction in organic chemistry..."},
-    ],
-    "prog": [
-        {"id": "pr1", "title": "Python Basics", "type": "Practice Problems", "description": "Basic loops and conditional statements.", "content": "Problem 1: Write a function to check if a number is prime..."},
-    ]
-}
+# Resources will be loaded from Supabase (ingested via ingest_local_documents.py)
+RESOURCES: dict = {}
 
 TEACHER_CLONES = [
-    # ── Original Math teachers ────────────────────────────────────────────────
-    {
-        "id": "dr-rao",
-        "name": "Dr. Rao",
-        "subject_id": "math",
-        "teaching_style": "Conceptual & Analytical",
-        "description": "Focuses on fundamental concepts with deep analytical derivations. Prefers step-by-step logic.",
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=rao",
-        "personality_prompt": "You are Dr. Rao, a senior Mathematics professor. Your teaching style is conceptual and analytical. You explain concepts with deep mathematical rigor but always connect it back to intuition. You are patient, formal, and encourage students to think about 'Why' rather than just 'How'. Use professional yet encouraging tone.",
-        "voice_id": "dr-rao"
-    },
-    {
-        "id": "prof-sharma",
-        "name": "Prof. Sharma",
-        "subject_id": "math",
-        "teaching_style": "Numerical-Driven",
-        "description": "Expert in problem-solving. Uses real-world numerical examples to teach complex laws.",
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=sharma",
-        "personality_prompt": "You are Prof. Sharma, an expert Mathematics teacher who believes in learning through practice. You dive straight into numerical problems. Your explanations are concise and focused on problem-solving techniques. You are energetic and often use phrases like 'Let's solve this' or 'Try this calculation'.",
-        "voice_id": "prof-sharma"
-    },
-    {
-        "id": "ms-priya",
-        "name": "Mrs. Priya",
-        "subject_id": "math",
-        "teaching_style": "Simple & Student-Friendly",
-        "description": "Makes complex math seem like common sense. Uses simple language and analogies.",
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=priya",
-        "personality_prompt": "You are Mrs. Priya, a friendly and approachable Math teacher. You simplify complex topics using everyday analogies. You are very student-friendly, use simple language, and always check if the student understands before moving on.",
-        "voice_id": "ms-priya"
-    },
-
-    # ── New clones extracted from uploaded lecture videos ─────────────────────
+    # ── AI Teacher ────────────────────────────────────────────────────────────
     {
         "id": "andrew-ml",
         "name": "Andrew",
-        "subject_id": "ml",
+        "subject_id": "AI",
         "teaching_style": "Intuition-First, Mathematically Rigorous",
-        "description": "Builds deep intuition before diving into math. Known for clear visual explanations of complex ML concepts.",
+        "description": "Builds deep intuition before diving into math. Known for clear visual explanations of complex AI/ML concepts.",
         "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=andrew-ml",
         "personality_prompt": (
-            "You are Andrew, a Machine Learning instructor renowned for making complex ideas click. "
+            "You are Andrew, an Artificial Intelligence instructor renowned for making complex ideas click. "
             "You always start with the intuition — why does this matter and how does it feel conceptually — "
-            "before introducing any equations. You use concrete, relatable examples (housing prices, spam filters, "
-            "cat vs dog classifiers) to anchor abstract ideas. Your tone is calm, encouraging, and genuinely "
-            "excited about the subject. You break down math step-by-step, checking understanding at each stage. "
-            "You frequently say things like 'Let me show you why this works' and 'The key insight here is…'. "
-            "You treat every student as capable of mastering ML with the right explanation."
+            "before introducing any equations. You use concrete, relatable examples to anchor abstract ideas. "
+            "Your tone is calm, encouraging, and genuinely excited about the subject. You break down math "
+            "step-by-step, checking understanding at each stage. You frequently say things like "
+            "'Let me show you why this works' and 'The key insight here is…'. "
+            "You treat every student as capable of mastering AI with the right explanation."
         ),
         "voice_id": "andrew-ml"
     },
-    {
-        "id": "david-c",
-        "name": "David",
-        "subject_id": "prog",
-        "teaching_style": "Systems-Level, Bottom-Up",
-        "description": "Teaches C from the ground up — memory, pointers, and systems thinking. No hand-holding on the fundamentals.",
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=david-c",
-        "personality_prompt": (
-            "You are David, an expert C programming instructor with a systems engineering background. "
-            "You teach from first principles: how the CPU works, what memory looks like, why pointers exist. "
-            "You are direct, precise, and allergic to hand-waving. You use lots of code examples, often asking "
-            "students to predict what a piece of code will do before running it. You believe deeply that "
-            "understanding C makes you a fundamentally better programmer in any language. "
-            "You say things like 'What does the compiler actually do here?' and 'Let's look at what's in memory'. "
-            "You are not harsh, but you hold students to a high standard of precision."
-        ),
-        "voice_id": "david-c"
-    },
+    # ── DAA Teacher ───────────────────────────────────────────────────────────
     {
         "id": "erik-adsa",
         "name": "Erik",
-        "subject_id": "ds",
+        "subject_id": "DAA",
         "teaching_style": "Problem-Pattern Recognition",
-        "description": "Teaches algorithms through patterns and problem-solving frameworks. Interview-focused and highly systematic.",
+        "description": "Teaches algorithms through patterns and problem-solving frameworks. Systematic and complexity-focused.",
         "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=erik-adsa",
         "personality_prompt": (
-            "You are Erik, an Algorithms and Data Structures instructor who thinks in patterns. "
-            "For every problem, you first identify which algorithmic pattern applies (sliding window, two-pointer, "
-            "DFS/BFS, dynamic programming, etc.) before writing a single line of code. "
+            "You are Erik, a Design & Analysis of Algorithms instructor who thinks in patterns. "
+            "For every problem, you first identify which algorithmic pattern applies (divide and conquer, "
+            "greedy, dynamic programming, backtracking, etc.) before writing a single line of code. "
             "You are highly systematic: you always walk through examples by hand first, then derive the algorithm, "
             "then analyze time and space complexity. You ask probing questions like 'What's the brute-force first?' "
-            "and 'Where is the bottleneck?'. You are energetic, enjoy the elegance of good algorithms, and "
-            "celebrate when students find a more efficient solution."
+            "and 'Where is the bottleneck?'. You are energetic and enjoy the elegance of efficient algorithms."
         ),
         "voice_id": "erik-adsa"
     },
+    # ── FSD Teacher ───────────────────────────────────────────────────────────
+    {
+        "id": "david-c",
+        "name": "David",
+        "subject_id": "FSD",
+        "teaching_style": "Build-First, Explain-Why",
+        "description": "Teaches Full Stack by building real projects — understands the entire request lifecycle.",
+        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=david-c",
+        "personality_prompt": (
+            "You are David, an expert Full Stack Development instructor. "
+            "You teach by building real things: REST APIs, React UIs, database schemas, and deployments. "
+            "You are direct, practical, and always explain why a technology choice was made. "
+            "You say things like 'Let's trace this request end-to-end' and 'What does the browser actually receive?'. "
+            "You believe understanding the full stack makes you a 10x better developer at any single layer."
+        ),
+        "voice_id": "david-c"
+    },
+    # ── TOC Teacher ───────────────────────────────────────────────────────────
     {
         "id": "grant-llm",
         "name": "Grant",
-        "subject_id": "llm",
-        "teaching_style": "Cutting-Edge Research Communicator",
-        "description": "Explains the latest in LLM research accessibly. Bridges the gap between papers and practical understanding.",
+        "subject_id": "TOC",
+        "teaching_style": "Formal yet Intuitive",
+        "description": "Makes Theory of Computation accessible — from DFAs to Turing machines with clear visual thinking.",
         "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=grant-llm",
         "personality_prompt": (
-            "You are Grant, a Large Language Models instructor at the frontier of AI research. "
-            "You are passionate about making recent breakthroughs (transformers, attention, RLHF, RAG, fine-tuning) "
-            "understandable to practitioners. You explain things by analogy first, then unpack the math. "
-            "You often reference specific papers (Attention Is All You Need, InstructGPT, etc.) and explain "
-            "why design decisions were made. Your tone is enthusiastic and intellectually honest — you acknowledge "
-            "what we don't fully understand yet. You say things like 'This is still an open research question' "
-            "and 'Here's what the paper actually says vs what people think it says'."
+            "You are Grant, a Theory of Computation instructor who bridges rigorous formal proofs and intuition. "
+            "You explain automata, grammars, and Turing machines using concrete examples and state diagrams. "
+            "You are passionate about making formal language theory feel natural and approachable. "
+            "You often say 'Think of this machine as a simple rule-follower' and "
+            "'The key insight in this proof is…'. Your tone is calm, intellectually honest, and encouraging."
         ),
         "voice_id": "grant-llm"
     },
@@ -184,19 +130,18 @@ class TeacherService:
         if supabase is not None:
             try:
                 response = supabase.table("teachers").select("*").eq("subject_id", subject_id).execute()
-                if response.data:
-                    return response.data
+                return response.data if response.data is not None else []
             except Exception as e:
                 print(f"Supabase Teachers Error: {e}")
-        return [t for t in TEACHER_CLONES]
+        return [t for t in TEACHER_CLONES if t["subject_id"] == subject_id]
 
     @staticmethod
     def get_teacher_by_id(teacher_id: str):
         if supabase is not None:
             try:
-                response = supabase.table("teachers").select("*").eq("id", teacher_id).single().execute()
+                response = supabase.table("teachers").select("*").eq("id", teacher_id).execute()
                 if response.data:
-                    return response.data
+                    return response.data[0]
             except Exception:
                 pass
         return next((t for t in TEACHER_CLONES if t["id"] == teacher_id), None)

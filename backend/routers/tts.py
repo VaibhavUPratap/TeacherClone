@@ -87,7 +87,7 @@ async def list_voices():
     """
     from pathlib import Path
 
-    voices_dir = Path("backend/data/voices")
+    voices_dir = Path("data/voices")
     if not voices_dir.exists():
         return []
 
@@ -109,7 +109,7 @@ async def upload_voice(voice_id: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Unsupported audio format. Use WAV, AAC, MP3, or FLAC.")
     
     from pathlib import Path
-    voices_dir = Path("backend/data/voices")
+    voices_dir = Path("data/voices")
     voices_dir.mkdir(parents=True, exist_ok=True)
     
     target_path = voices_dir / f"{voice_id}{ext}"
@@ -147,7 +147,7 @@ async def get_voice_file(voice_id: str):
     Stream a speaker voice file by its voice_id.
     """
     from pathlib import Path
-    voices_dir = Path("backend/data/voices")
+    voices_dir = Path("data/voices")
     extensions = [".wav", ".aac", ".mp3", ".flac"]
     
     target_path = None

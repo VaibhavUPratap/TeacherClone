@@ -14,7 +14,7 @@ class ChatService:
         self.gemini_key = settings.GEMINI_API_KEY
         self.gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.gemini_key}"
         self.ollama_url = f"{settings.OLLAMA_BASE_URL}/api/chat"
-        self.use_ollama = True  # Set to True to use local Ollama by default
+        self.use_ollama = settings.USE_OLLAMA
 
     def generate_answer(self, question: str) -> dict:
         """
@@ -102,9 +102,11 @@ class ChatService:
 
     def _get_question_embedding(self, question: str) -> list[float] | None:
         """
-        Call Ollama's /api/embeddings endpoint to embed the user's question.
-        Returns None on failure so the caller can handle gracefully.
+        Embed the user's question. Since document ingestion is performed using
+        Ollama's nomic-embed-text, the question embedding should prioritize the
+        same local model to guarantee vector space and dimension compatibility (768).
         """
+        # Try local Ollama embedding first (matching the ingestion model)
         try:
             url = f"{settings.OLLAMA_BASE_URL}/api/embeddings"
             payload = {"model": settings.OLLAMA_EMBED_MODEL, "prompt": question}
@@ -113,8 +115,26 @@ class ChatService:
                 response.raise_for_status()
             return response.json()["embedding"]
         except Exception as e:
-            print(f"Embedding Error: {e}")
-            return None
+            print(f"Ollama Embedding Error: {e}. Trying Gemini fallback...")
+
+        # Fallback to Gemini if Ollama is unavailable
+        if self.gemini_key:
+            try:
+                # Use the active gemini-embedding-001 model instead of the deprecated text-embedding-004
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={self.gemini_key}"
+                payload = {
+                    "content": {
+                        "parts": [{"text": question}]
+                    }
+                }
+                with httpx.Client(timeout=10.0) as client:
+                    response = client.post(url, json=payload)
+                    response.raise_for_status()
+                    return response.json()["embedding"]["values"]
+            except Exception as e:
+                print(f"Gemini Embedding Error: {e}")
+        
+        return None
 
     def _generate_with_ollama(self, question: str) -> dict:
         """
@@ -303,36 +323,89 @@ class ChatService:
             except Exception as e:
                 print(f"Supabase History Error (Stream): {e}")
 
-        url = f"{settings.OLLAMA_BASE_URL}/api/chat"
-        payload = {
-            "model": settings.OLLAMA_MODEL,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "stream": True
-        }
-
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            try:
-                async with client.stream("POST", url, json=payload) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if not line:
-                            continue
-                        
-                        try:
-                            data = json.loads(line)
-                            token = data.get("message", {}).get("content", "")
-                            yield f"data: {token}\n\n"
+        if not self.use_ollama and self.gemini_key:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key={self.gemini_key}"
+            payload = {
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [{"text": user_prompt}]
+                    }
+                ],
+                "systemInstruction": {
+                    "parts": [{"text": system_prompt}]
+                },
+                "generationConfig": {
+                    "temperature": 0.7
+                }
+            }
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                try:
+                    async with client.stream("POST", url, json=payload) as response:
+                        response.raise_for_status()
+                        buffer = ""
+                        async for line in response.aiter_lines():
+                            clean_line = line.strip()
+                            if not clean_line:
+                                continue
+                            buffer += clean_line
                             
-                            if data.get("done"):
-                                break
-                        except json.JSONDecodeError:
-                            continue
-            except Exception as e:
-                print(f"Streaming Error: {e}")
-                yield f"data: Error: {str(e)}\n\n"
+                            # Strip array/stream markers to extract a single object candidate
+                            test_str = buffer
+                            if test_str.startswith("["):
+                                test_str = test_str[1:]
+                            if test_str.startswith(","):
+                                test_str = test_str[1:]
+                            if test_str.endswith("]"):
+                                test_str = test_str[:-1]
+                            
+                            test_str = test_str.strip()
+                            try:
+                                chunk_data = json.loads(test_str)
+                                token = chunk_data["candidates"][0]["content"]["parts"][0].get("text", "")
+                                yield f"data: {token}\n\n"
+                                buffer = ""  # Reset buffer for the next chunk
+                            except json.JSONDecodeError:
+                                # Keep accumulating lines until we have a complete JSON object
+                                continue
+                            except (KeyError, IndexError):
+                                # Path mismatch (e.g. usageMetadata), clear buffer to proceed
+                                buffer = ""
+                                continue
+                except Exception as e:
+                    print(f"Gemini Streaming Error: {e}")
+                    yield f"data: Error: {str(e)}\n\n"
+        else:
+            url = f"{settings.OLLAMA_BASE_URL}/api/chat"
+            payload = {
+                "model": settings.OLLAMA_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "stream": True
+            }
+
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                try:
+                    async with client.stream("POST", url, json=payload) as response:
+                        response.raise_for_status()
+                        async for line in response.aiter_lines():
+                            if not line:
+                                continue
+                            
+                            try:
+                                data = json.loads(line)
+                                token = data.get("message", {}).get("content", "")
+                                yield f"data: {token}\n\n"
+                                
+                                if data.get("done"):
+                                    break
+                            except json.JSONDecodeError:
+                                continue
+                except Exception as e:
+                    print(f"Streaming Error: {e}")
+                    yield f"data: Error: {str(e)}\n\n"
 
     def get_history(self, limit: int = 50) -> list:
         """Retrieves chat history from Supabase."""

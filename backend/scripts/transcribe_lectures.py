@@ -47,8 +47,8 @@ import config  # noqa: F401  (side effect: FFmpeg PATH injection)
 from services.voice_extraction_service import TEACHER_VIDEO_MAP, VIDEOS_DIR
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-DOCS_DIR = BACKEND_DIR / "data" / "documents"
-DOCS_DIR.mkdir(parents=True, exist_ok=True)
+TRANSCRIPTS_DIR = BACKEND_DIR / "data" / "transcripts"
+TRANSCRIPTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -200,8 +200,8 @@ def process_teacher(
         return {}
 
     video_path = video_files[stem]
-    transcript_path = DOCS_DIR / f"{voice_id}_transcript.txt"
-    profile_path = DOCS_DIR / f"{voice_id}_profile.json"
+    transcript_path = TRANSCRIPTS_DIR / f"{voice_id}_transcript.txt"
+    profile_path = TRANSCRIPTS_DIR / f"{voice_id}_profile.json"
 
     # ── Check if already done ─────────────────────────────────────────────────
     if transcript_path.exists() and profile_path.exists() and not force:
@@ -294,7 +294,7 @@ def main() -> int:
             print()
 
         print("─" * 70)
-        print(f"Profiles saved to: {DOCS_DIR}")
+        print(f"Profiles saved to: {TRANSCRIPTS_DIR}")
         print()
         print("Next step: Run scripts/ingest_lecture_transcripts.py to add")
         print("lecture content to ChromaDB for RAG.")

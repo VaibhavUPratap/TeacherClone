@@ -114,6 +114,25 @@ class VectorService:
         """Return the number of stored chunks."""
         return self.collection.count()
 
+    def delete_document(self, file_id: str, filename: str = None) -> None:
+        """Purge all vector chunks corresponding to a file_id or source filename."""
+        total_docs = self.collection.count()
+        if total_docs == 0:
+            return
+
+        # Delete by file_id (since we are adding it to metadata)
+        try:
+            self.collection.delete(where={"file_id": file_id})
+        except Exception as e:
+            print(f"ChromaDB delete by file_id error: {e}")
+
+        # Fallback to delete by source filename
+        if filename:
+            try:
+                self.collection.delete(where={"source": filename})
+            except Exception as e:
+                print(f"ChromaDB delete by filename error: {e}")
+
     def reset(self) -> None:
         """Delete and recreate the collection (useful for testing)."""
         self.client.delete_collection(self.collection.name)

@@ -1,6 +1,6 @@
 # TeacherClone — Project Context
 
-**Last Updated**: June 1, 2026
+**Last Updated**: June 7, 2026
 
 ---
 
@@ -71,54 +71,59 @@ TeacherClone/
 │   ├── main.py                     # App entry point, middleware, router mounting
 │   ├── config.py                   # Settings (pydantic-settings), Supabase client init, FFmpeg PATH injection
 │   ├── requirements.txt            # Includes CUDA torch via --extra-index-url
-│   ├── .env                        # Backend secrets (GEMINI_API_KEY, SUPABASE_URL, etc.)
+│   ├── .env
 │   ├── routers/
 │   │   ├── auth.py                 # POST /auth/login, /auth/logout, /auth/refresh
 │   │   ├── chat.py                 # POST /chat/message, GET /chat/stream, GET /chat/history
 │   │   ├── ingest.py               # POST /ingest/file, GET /ingest/documents, DELETE /ingest/document/{id}
 │   │   ├── tts.py                  # POST /tts/speak, GET /tts/voices, POST /tts/upload, GET /tts/voices/{id}
+│   │   ├── clone.py                # POST /clone/create, GET /clone/status/{id}, DELETE /clone/{id} (Clone Studio)
 │   │   └── dashboard.py            # GET /dashboard/analytics/{user_id}
 │   ├── services/
 │   │   ├── auth_service.py         # JWT creation/verification, Supabase user lookup
-│   │   ├── chat_service.py         # RAG pipeline: embed → ChromaDB → Ollama/Gemini stream
+│   │   ├── chat_service.py         # RAG pipeline: embed + ChromaDB + Ollama/Gemini stream
 │   │   ├── teacher_service.py      # Teacher clone CRUD, personality prompt management, DB seeding (upsert-safe)
-│   │   ├── ingest_service.py       # PDF/PPTX text extraction, chunking, ChromaDB ingestion
-│   │   ├── vector_service.py       # ChromaDB wrapper (add, query, delete collections)
+│   │   ├── ingest_service.py       # PDF/PPTX text extraction, chunking, ChromaDB ingestion/deletion
+│   │   ├── vector_service.py       # ChromaDB wrapper (add, query, delete collections/documents)
 │   │   ├── tts_service.py          # XTTS-v2 on GPU: device detection, VRAM-aware chunking, CUDA cache clearing
-│   │   ├── voice_extraction_service.py  # FFmpeg+VAD pipeline: MP4 → normalized 25s WAV
+│   │   ├── voice_extraction_service.py  # FFmpeg+VAD pipeline: MP4 -> normalized 25s WAV
+│   │   ├── clone_service.py        # Orchestrates dynamic voice & personality cloning pipeline from uploaded video
 │   │   ├── dashboard_service.py    # Aggregates Supabase chat metrics for analytics
 │   │   └── knowledge_base.py       # Static keyword-based fast-path answer lookup
 │   ├── schemas/                    # Pydantic request/response models
 │   ├── scripts/                    # CLI utilities (run from backend/ directory)
-│   │   ├── extract_teacher_voices.py   # Batch voice extraction — COMPLETED, all 4 voices extracted
-│   │   ├── test_clone.py               # End-to-end clone test — COMPLETED, all 4 passed on GPU
+│   │   ├── extract_teacher_voices.py   # Batch voice extraction - COMPLETED, all 4 voices extracted
+│   │   ├── test_clone.py               # End-to-end clone test - COMPLETED, all 4 passed on GPU
 │   │   ├── transcribe_lectures.py      # Whisper transcription + Ollama personality extraction (Phase 2)
-│   │   ├── ingest_lecture_transcripts.py  # Chunk transcripts → ChromaDB RAG ingestion (Phase 2)
+│   │   ├── ingest_lecture_transcripts.py  # Chunk transcripts -> ChromaDB RAG ingestion (Phase 2)
+│   │   ├── seed_subjects.py            # Upserts university subjects and default teachers to DB
+│   │   ├── delete_old_subjects.py      # Cleans up placeholder subjects from DB
+│   │   ├── ingest_local_documents.py   # Scans data/documents/ recursively to ingest documents
 │   │   └── check_voice_quality.py      # ffprobe quality report on extracted voices
-│   ├── data/
-│   │   ├── videos/                 # Source lecture MP4s
-│   │   │   ├── Andrew-ML.mp4       # 135.9 MB — Machine Learning
-│   │   │   ├── David-C.mp4         # 218.5 MB — C Programming
-│   │   │   ├── Erik-ADSA.mp4       # 259.0 MB — Algorithms & Data Structures
-│   │   │   └── Grant-LLM.mp4       # 60.7 MB  — Large Language Models
-│   │   ├── voices/                 # XTTS-v2 speaker reference WAVs (16kHz mono, ~782 KB each)
-│   │   │   ├── andrew-ml.wav       # skip=8s, loudnorm, VAD=1 — mean=-16.8 dB ✓
-│   │   │   ├── david-c.wav         # skip=78s (past title gap), loudnorm, VAD=2 — mean=-16.4 dB ✓
-│   │   │   ├── erik-adsa.wav       # skip=22s, loudnorm+limiter (was clipping 0dB), VAD=3 — mean=-16.8 dB ✓
-│   │   │   ├── grant-llm.wav       # skip=2s, no loudnorm needed — mean=-15.3 dB ✓
-│   │   │   ├── dr-rao.wav          # Original Math teacher voice
-│   │   │   ├── prof-sharma.wav     # Original Math teacher voice
-│   │   │   ├── ms-priya.aac        # Original Math teacher voice
-│   │   │   └── vaibhav.aac         # Developer test voice
-│   │   ├── audio/                  # Generated TTS output WAVs
-│   │   │   ├── clone_test_andrew-ml.wav   # Test clone output — 22.7s inference, 637 KB
-│   │   │   ├── clone_test_david-c.wav     # Test clone output — 14.2s inference, 631 KB
-│   │   │   ├── clone_test_erik-adsa.wav   # Test clone output — 10.8s inference, 491 KB
-│   │   │   └── clone_test_grant-llm.wav   # Test clone output — 12.4s inference, 553 KB
-│   │   ├── documents/              # Lecture transcripts + teacher profile JSONs (Phase 2)
-│   │   └── chroma_db/              # ChromaDB vector store
-│   └── static/audio/               # Generated TTS audio files served via /static
-│
+│   └── data/
+│       ├── videos/                 # Source lecture MP4s
+│       │   ├── Andrew-ML.mp4       # 135.9 MB - Machine Learning
+│       │   ├── David-C.mp4         # 218.5 MB - C Programming
+│       │   ├── Erik-ADSA.mp4       # 259.0 MB - Algorithms & Data Structures
+│       │   └── Grant-LLM.mp4       # 60.7 MB  - Large Language Models
+│       ├── voices/                 # XTTS-v2 speaker reference WAVs (16kHz mono, ~782 KB each)
+│       │   ├── andrew-ml.wav       # skip=8s, loudnorm, VAD=1 - mean=-16.8 dB
+│       │   ├── david-c.wav         # skip=78s (past title gap), loudnorm, VAD=2 - mean=-16.4 dB
+│       │   ├── erik-adsa.wav       # skip=22s, loudnorm+limiter (was clipping 0dB), VAD=3 - mean=-16.8 dB
+│       │   ├── grant-llm.wav       # skip=2s, no loudnorm needed - mean=-15.3 dB
+│       │   ├── dr-rao.wav          # Original Math teacher voice
+│       │   ├── prof-sharma.wav     # Original Math teacher voice
+│       │   ├── ms-priya.aac        # Original Math teacher voice
+│       │   └── vaibhav.aac         # Developer test voice
+│       ├── audio/                  # Generated TTS output WAVs
+│       │   ├── clone_test_andrew-ml.wav   # Test clone output - 22.7s inference, 637 KB
+│       │   ├── clone_test_david-c.wav     # Test clone output - 14.2s inference, 631 KB
+│       │   ├── clone_test_erik-adsa.wav   # Test clone output - 10.8s inference, 491 KB
+│       │   └── clone_test_grant-llm.wav   # Test clone output - 12.4s inference, 553 KB
+│       ├── documents/              # Subject-specific local documents (e.g. AI/, DAA/)
+│       ├── transcripts/            # Whisper transcripts & personality profiles (Phase 2)
+│       └── chroma_db/              # ChromaDB vector store
+├── static/audio/               # Generated TTS audio files served via /static
 ├── frontend/                       # React SPA
 │   ├── .env                        # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_API_BASE_URL
 │   ├── index.html
@@ -126,7 +131,7 @@ TeacherClone/
 │   ├── package.json
 │   └── src/
 │       ├── main.jsx                # ReactDOM.createRoot, wraps App in AuthProvider
-│       ├── App.jsx                 # Router, route definitions, ProtectedRoute, PublicOnlyRoute
+│       ├── App.jsx                 # Router, route definitions (includes /dashboard/clone-studio)
 │       ├── supabase.js             # Unified Supabase client (real + mock fallback)
 │       ├── index.css               # Full design system (atmospheric/glassmorphism)
 │       ├── tokens.css              # CSS custom properties (colours, spacing, typography)
@@ -146,25 +151,24 @@ TeacherClone/
 │       │       ├── StudentAnalytics.jsx    # Personal learning stats with Recharts
 │       │       ├── Conversations.jsx       # Chat history viewer
 │       │       ├── ClassData.jsx           # Teacher/Admin: class overview, student data
-│       │       ├── Lectures.jsx            # Lecture upload & management
+│       │       ├── Lectures.jsx            # Lecture upload, library ingestion, and deletion management
 │       │       ├── Slides.jsx              # Slide deck viewer
 │       │       ├── Archive.jsx             # Archived content
-│       │       └── Voices.jsx              # Admin: custom TTS voice management
-│       ├── components/
-│       │   ├── Dashboard.jsx               # Stub/wrapper
-│       │   ├── StudentChat.jsx             # Stub/wrapper
-│       │   ├── chat/
-│       │   │   ├── StudentChat.jsx         # Full chat UI with streaming, TTS button
-│       │   │   └── MessageRenderer.jsx     # Renders text, code, citations, audio player
-│       │   └── layout/
-│       │       └── DashboardLayout.jsx     # Sidebar, header, theming wrapper for all dashboard routes
-│
+│       │       ├── Voices.jsx              # Admin: custom TTS voice management
+│       │       └── CloneStudio.jsx         # Admin/Teacher: Automated custom clone studio pipeline
+│       └── components/
+│           ├── Dashboard.jsx               # Stub/wrapper
+│           ├── StudentChat.jsx             # Stub/wrapper
+│           ├── chat/
+│           │   ├── StudentChat.jsx         # Full chat UI with streaming, TTS button
+│           │   └── MessageRenderer.jsx     # Renders text, code, citations, audio player
+│           └── layout/
+│               └── DashboardLayout.jsx     # Sidebar, header, theming wrapper for all dashboard routes
 ├── supabase/
 │   └── migrations/
 │       ├── 20231010000000_initial_schema.sql       # subjects, teachers, resources, chats, documents tables
 │       ├── 20260531000000_proper_database.sql      # profiles table, voices table, handle_new_user trigger
 │       └── 20260531010000_google_oauth_role_upsert.sql  # INSERT policy + ON CONFLICT DO UPDATE for OAuth
-│
 ├── .env.example
 ├── context.md                      # This file
 └── README.md
@@ -174,38 +178,28 @@ TeacherClone/
 
 ## 👨‍🏫 Teacher Clones
 
-### Original Math Teachers (seeded from day 1)
-| ID | Name | Subject | Voice ID | Style |
-|---|---|---|---|---|
-| `dr-rao` | Dr. Rao | Mathematics | `dr-rao` | Conceptual & Analytical |
-| `prof-sharma` | Prof. Sharma | Mathematics | `prof-sharma` | Numerical-Driven |
-| `ms-priya` | Mrs. Priya | Mathematics | `ms-priya` | Simple & Student-Friendly |
+### University Subjects Structure
+The platform features structured course subjects and corresponding default teacher profiles seeded in the database. Custom teachers can also be created dynamically using Clone Studio.
 
-### New Clones (extracted from uploaded lecture videos — June 1, 2026)
-| ID | Name | Subject ID | Voice ID | Style |
-|---|---|---|---|---|
-| `andrew-ml` | Andrew | `ml` | `andrew-ml` | Intuition-First, Mathematically Rigorous |
-| `david-c` | David | `prog` | `david-c` | Systems-Level, Bottom-Up |
-| `erik-adsa` | Erik | `ds` | `erik-adsa` | Problem-Pattern Recognition |
-| `grant-llm` | Grant | `llm` | `grant-llm` | Cutting-Edge Research Communicator |
-
-All 4 new clones have:
-- Personality prompts hand-crafted from observed teaching styles
-- Voices extracted, VAD-filtered, and EBU R128 normalized from their lecture videos
-- Entries in `public.voices` Supabase table (upserted)
-- Entries in `public.teachers` Supabase table (upserted)
+### Default Seeded Teacher Clones
+| ID | Name | Subject ID | Voice ID | Style | Description |
+|---|---|---|---|---|---|
+| `andrew-ml` | Andrew | `AI` | `andrew-ml` | Intuition-First, Mathematically Rigorous | Artificial Intelligence instructor, intuition-first |
+| `erik-adsa` | Erik | `DAA` | `erik-adsa` | Problem-Pattern Recognition | Design & Analysis of Algorithms instructor, pattern-focused |
+| `dr-rao` | Dr. Rao | `DBMS` | `dr-rao` | Conceptual & Analytical | Database Management Systems senior professor |
+| `david-c` | David | `FSD` | `david-c` | Build-First, Explain-Why | Full Stack Development builder-focused instructor |
+| `prof-sharma` | Prof. Sharma | `TNT` | `prof-sharma` | Numerical-Driven | Transform & Numerical Techniques worked-examples expert |
+| `grant-llm` | Grant | `TOC` | `grant-llm` | Formal yet Intuitive | Theory of Computation automata & Turing machines expert |
 
 ### Subjects
-| ID | Name | Notes |
+| ID | Name | Description |
 |---|---|---|
-| `math` | Mathematics | Original |
-| `physics` | Physics | Original |
-| `chem` | Chemistry | Original |
-| `prog` | Programming | Updated: now includes C/Systems |
-| `ml` | Machine Learning | Original |
-| `ds` | Data Structures & Algorithms | Updated name |
-| `llm` | Large Language Models | **NEW** — added for Grant |
-| `mech` | Engineering Mechanics | Original |
+| `AI` | Artificial Intelligence | Search, Knowledge, Reasoning, and AI Agents |
+| `DAA` | Design & Analysis of Algorithms | Complexity, Sorting, Graphs, Greedy, DP, and Backtracking |
+| `DBMS` | Database Management Systems | SQL, Normalization, Transactions, and Query Optimization |
+| `FSD` | Full Stack Development | HTML, CSS, JavaScript, React, Node.js, and REST APIs |
+| `TNT` | Transform & Numerical Techniques | Fourier, Laplace, Z-Transforms, and Numerical Methods |
+| `TOC` | Theory of Computation | Automata, Regular Languages, CFGs, Turing Machines |
 
 ---
 
@@ -231,6 +225,9 @@ Lecture Video (.mp4)
   ▼ data/voices/{voice_id}.wav
        16kHz mono, ~782 KB, ~25s, EBU R128 normalized
 ```
+
+### Clone Studio (Automated User-Driven Cloning)
+Admins can upload lecture videos in **Clone Studio** to trigger this entire pipeline dynamically.
 
 ### Per-Teacher Audio Analysis Results
 | Teacher | Issue Found | Fix Applied |
@@ -273,6 +270,88 @@ python -c "import torch; print(torch.cuda.is_available())"  # Should print True
 ---
 
 ## 🔄 Detailed Workflows
+
+### 1. Authentication Flow
+
+**Email/Password:**
+```
+/login → role pick → enter credentials
+→ supabase.auth.signInWithPassword({ email, password })
+→ real Supabase (if credentials valid) OR mock fallback (@teacherclone.edu demo accounts)
+→ SIGNED_IN event → AuthContext updates user + fetches role from profiles
+→ setGlobalRole(verifiedRole) → navigate('/dashboard')
+```
+
+**Google OAuth:**
+```
+/login → role pick → "Continue with Google"
+→ localStorage.setItem('pendingOAuthRole', role)  ← saved BEFORE redirect
+→ supabase.auth.signInWithOAuth({ provider: 'google', redirectTo: '/auth/callback', queryParams: { role } })
+→ Browser → Google sign-in → Supabase token exchange
+→ Redirect to /auth/callback
+→ OAuthCallback: getSession() → read pendingOAuthRole → upsert profiles table → navigate('/dashboard')
+```
+
+**Token Refresh**: Supabase JS SDK handles silently via `onAuthStateChange`.
+**Logout**: `supabase.auth.signOut()` → clears localStorage (`userRole`, `mockUser`) → SIGNED_OUT event → user = null → redirect to `/login`.
+
+### 2. Student Chat (AI Teacher) Flow
+```
+StudentHome → pick subject → SubjectSelection.jsx
+→ Subject cards fetched from Supabase (subjects table)
+→ Pick teacher clone (teachers table, filtered by subject_id)
+→ TeacherInteraction.jsx / StudentChat.jsx
+→ User types question → POST /chat/stream?teacher_id=X
+→ Backend: chat_service.stream_answer()
+    1. Fetch teacher personality_prompt from teacher_service
+    2. Embed question with nomic-embed-text (Ollama)
+    3. Query ChromaDB for top-3 relevant chunks (filtered by subject_id)
+    4. Build RAG prompt: context + question + teacher persona
+    5. POST to Ollama llama3 (stream: true) → yields SSE tokens
+    6. Log question to Supabase chats table
+→ Frontend: ReadableStream reads SSE → appends tokens to message buffer
+→ Framer Motion renders token-by-token typing animation
+→ Optional TTS button → triggers TTS flow
+```
+
+**Fallback**: If Ollama is unavailable → `_generate_with_gemini()` uses Gemini 2.5 Flash (non-streaming).
+
+### 3. Document Ingestion Flow
+```
+Lectures.jsx / Resources section
+→ User selects PDF/PPTX/TXT/MD → POST /ingest/file (multipart)
+→ ingest_service.py:
+    1. Saves document in subject-specific folder under data/documents/{subject_id}/
+    2. Extract text (PDF: PyMuPDF, PPTX: python-pptx, TXT/MD: raw)
+    3. Sanitize text by stripping null bytes and invalid control chars
+    4. Split into chunks (~500 tokens)
+    5. Embed chunks (nomic-embed-text) and store in ChromaDB (attaching file_id & subject_id to metadata)
+    6. Sync to Supabase public.documents and public.resources (truncating content to 12k chars to prevent row limits)
+→ Frontend updates library inventory.
+```
+
+### 4. Document Deletion Flow
+```
+Lectures.jsx → Click Delete → Confirm modal → DELETE /ingest/document/{file_id}
+→ backend: ingest_service.delete_document()
+    1. Fetch filename and subject_id from Supabase documents table
+    2. Delete database records from Supabase public.documents & public.resources
+    3. Purge vector chunks from ChromaDB by file_id / filename
+    4. Remove physical file from data/documents/{subject_id}/
+```
+
+### 5. Clone Studio Pipeline Flow
+```
+CloneStudio.jsx → upload video file + details → POST /clone/create
+→ backend: clone_service.start_clone_job()
+    1. Save video to data/videos/
+    2. Extract reference WAV (FFmpeg + WebRTC VAD) -> data/voices/ (fallback if extraction fails)
+    3. Transcribe video with OpenAI Whisper on GPU -> data/transcripts/
+    4. Extract teaching personality prompt from transcript (Ollama)
+    5. Sync/upsert clone record and voice into Supabase public.teachers & public.voices
+→ Frontend: Poll GET /clone/status/{job_id} for progress (Save -> Voice -> Whisper -> Ollama -> DB)
+→ Finalization: Preview voice, edit prompt → PATCH /clone/{teacher_id}/finalize to save personality prompt.
+```
 
 ### 1. Authentication Flow
 
@@ -496,6 +575,9 @@ All tables have Row Level Security (RLS) enabled.
 | Check voice quality | `$env:PYTHONIOENCODING="utf-8"; .\venv\Scripts\python.exe scripts/check_voice_quality.py` |
 | Transcribe lectures (Phase 2) | `$env:PYTHONIOENCODING="utf-8"; .\venv\Scripts\python.exe scripts/transcribe_lectures.py --model medium` |
 | Ingest transcripts (Phase 2) | `$env:PYTHONIOENCODING="utf-8"; .\venv\Scripts\python.exe scripts/ingest_lecture_transcripts.py` |
+| Seed subjects & default teachers | `$env:PYTHONIOENCODING="utf-8"; .\venv\Scripts\python.exe scripts/seed_subjects.py` |
+| Clean old placeholder subjects | `$env:PYTHONIOENCODING="utf-8"; .\venv\Scripts\python.exe scripts/delete_old_subjects.py` |
+| Batch ingest local subject documents | `$env:PYTHONIOENCODING="utf-8"; .\venv\Scripts\python.exe scripts/ingest_local_documents.py` |
 
 > **Windows Note**: Always set `$env:PYTHONIOENCODING="utf-8"` before running backend scripts to avoid CP1252 encoding errors in the terminal.
 
@@ -529,21 +611,28 @@ All tables have Row Level Security (RLS) enabled.
 - [x] CUDA PyTorch (`torch 2.6.0+cu124`) installed and verified on RTX 3050
 - [x] XTTS-v2 running on GPU with VRAM-safe chunking
 - [x] All 4 teacher voices cloned and tested (60s total on GPU)
-- [x] `teacher_service.py` updated with 4 new teachers + `llm` subject (upsert-safe seeding)
+- [x] `teacher_service.py` updated with default teachers + subjects (upsert-safe seeding)
 - [x] Supabase `public.voices` + `public.teachers` + `public.subjects` upserted
 
 ### Phase 2 — Transcription & RAG ✅ COMPLETE
 - [x] Run `transcribe_lectures.py` — Whisper transcribes each MP4 locally on GPU (`base` model)
-  - Outputs: `data/documents/{voice_id}_transcript.txt`
+  - Outputs: `data/transcripts/{voice_id}_transcript.txt`
   - Ollama (`llama3.2:1b`) extracts personality prompts from transcripts
-  - Profiles saved to `data/documents/{voice_id}_profile.json`
+  - Profiles saved to `data/transcripts/{voice_id}_profile.json`
 - [x] Run `ingest_lecture_transcripts.py` — chunks transcripts → ChromaDB
   - Chunks: 148 total chunks generated using overlap splitting
   - Embeddings: Generated locally using Ollama (`nomic-embed-text`)
-  - Subject mapping: andrew-ml→ml, david-c→prog, erik-adsa→ds, grant-llm→ml
+  - Subject mapping: andrew-ml→AI, david-c→FSD, erik-adsa→DAA, grant-llm→TOC
   - Records in Supabase `public.documents`
 
-### Phase 3 — Feature Extraction (Future)
+### Phase 3 — Custom Teacher Cloning (Clone Studio) & Dynamic Library Ingest ✅ COMPLETE
+- [x] Background cloning pipeline (`clone_service.py` + `clone.py`) with automatic video saving, voice extraction, Whisper transcription, Ollama prompt generation, and Supabase seeding.
+- [x] Admin/Teacher frontend Clone Studio dashboard (`CloneStudio.jsx`) to build, poll, preview, edit, and delete custom AI clones.
+- [x] Subject-specific folder structure under `data/documents/{subject_id}/` for library materials.
+- [x] Text sanitization (null byte removal) and text preview limit configuration (12k chars) for `public.resources` database row-limit safety.
+- [x] Full library resource upload, ingestion, and deletion lifecycle management (UI + backend vector/DB purging).
+
+### Phase 4 — Feature Extraction & Refinement (Future)
 - [ ] Extract teaching-specific features from transcripts (vocabulary level, analogy patterns, pacing)
 - [ ] Use features to auto-generate/refine personality prompts per teacher
 - [ ] Fine-tune or adapt XTTS-v2 for longer-form coherent speech

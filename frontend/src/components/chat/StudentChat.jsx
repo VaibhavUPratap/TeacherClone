@@ -20,7 +20,7 @@ const StudentChat = forwardRef((props, ref) => {
   const [inputText, setInputText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [autoSpeak, setAutoSpeak] = useState(false);
   
   const scrollRef = useRef(null);
   const audioRef = useRef(null);

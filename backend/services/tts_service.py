@@ -216,6 +216,14 @@ class TTSService:
                 f"and no fallback voice was found. Supported extensions: {extensions}"
             )
 
+        # 1.5. Cache Lookup
+        import hashlib
+        cache_key = hashlib.md5(f"{voice_id}_{language}_{text}".encode("utf-8")).hexdigest()
+        output_path = str(AUDIO_DIR / f"{cache_key}.wav")
+        if os.path.exists(output_path):
+            logger.info("TTS: Cache hit! Returning pre-generated audio for key %s", cache_key)
+            return output_path
+
         # 2. Split text into chunks.
         # GPU is faster so we can afford slightly smaller chunks (200 chars) for
         # better VRAM management. CPU uses 250 chars to reduce overhead.
@@ -242,7 +250,6 @@ class TTSService:
                 temp_files.append(temp_path)
             
             # 4. Stitch WAV files together
-            output_path = str(AUDIO_DIR / f"{uuid.uuid4().hex}.wav")
             concatenate_wavs(temp_files, output_path)
             logger.info("TTS: combined audio saved -> %s", output_path)
             return output_path

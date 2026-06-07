@@ -29,3 +29,13 @@ def status(id: str):
     Returns the ingestion status for a given file_id.
     """
     return ingest_service.get_ingestion_status(id)
+
+
+@router.delete("/document/{file_id}")
+def delete_document(file_id: str):
+    """
+    Delete a document, its database records (documents and resources),
+    its vector embeddings in ChromaDB, and its local file.
+    """
+    return ingest_service.delete_document(file_id)
+

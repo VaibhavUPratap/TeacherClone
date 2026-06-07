@@ -6,6 +6,9 @@ import {
   Code, 
   Beaker, 
   Brain,
+  Database,
+  Cpu,
+  Sigma,
   ChevronRight,
   ArrowLeft,
   Sparkles,
@@ -36,7 +39,10 @@ const IconMap = {
   'Binary': Binary,
   'Code': Code,
   'Beaker': Beaker,
-  'Brain': Brain
+  'Brain': Brain,
+  'Database': Database,
+  'Cpu': Cpu,
+  'Sigma': Sigma,
 };
 
 const SubjectCard = ({ subject, onClick }) => {

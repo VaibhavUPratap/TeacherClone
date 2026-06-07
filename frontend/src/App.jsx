@@ -12,6 +12,7 @@ import TeacherInteraction from './pages/dashboard/TeacherInteraction';
 import SubjectSelection from './pages/dashboard/SubjectSelection';
 import StudentAnalytics from './pages/dashboard/StudentAnalytics';
 import Voices from './pages/dashboard/Voices';
+import CloneStudio from './pages/dashboard/CloneStudio';
 import { useAuth } from './context/AuthContext';
 
 // Protected Route Component
@@ -75,6 +76,7 @@ function App() {
           <Route path="analytics" element={<StudentAnalytics />} />
           <Route path="archive" element={<Archive />} />
           <Route path="voices" element={<Voices />} />
+          <Route path="clone-studio" element={<CloneStudio />} />
         </Route>
 
         {/* Redirect root based on auth status is handled by the routes above */}

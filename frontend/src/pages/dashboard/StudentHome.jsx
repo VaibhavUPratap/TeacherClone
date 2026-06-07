@@ -16,7 +16,10 @@ import {
   Binary,
   Code,
   Beaker,
-  Brain
+  Brain,
+  Database,
+  Cpu,
+  Sigma
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from "../../context/AuthContext";
@@ -28,7 +31,10 @@ const IconMap = {
   'Binary': Binary,
   'Code': Code,
   'Beaker': Beaker,
-  'Brain': Brain
+  'Brain': Brain,
+  'Database': Database,
+  'Cpu': Cpu,
+  'Sigma': Sigma,
 };
 
 export default function StudentHome() {
@@ -64,10 +70,18 @@ export default function StudentHome() {
       const subjectsData = await apiRequest("/dashboard/subjects");
       setSubjects(subjectsData);
 
-      // Fetch teachers (we query using the first subject id or 'math' as fallback to get teacher clones)
-      const firstSubjectId = subjectsData.length > 0 ? subjectsData[0].id : 'math';
-      const teachersData = await apiRequest(`/dashboard/teachers/${firstSubjectId}`);
-      setTeachers(teachersData);
+      // Fetch all teachers across all subjects and deduplicate by id
+      const teacherPromises = subjectsData.map(s =>
+        apiRequest(`/dashboard/teachers/${s.id}`).catch(() => [])
+      );
+      const teacherResults = await Promise.all(teacherPromises);
+      const allTeachers = Object.values(
+        teacherResults.flat().reduce((acc, t) => {
+          acc[t.id] = t;
+          return acc;
+        }, {})
+      );
+      setTeachers(allTeachers);
     } catch (err) {
       console.error("Error fetching student dashboard data:", err);
     } finally {

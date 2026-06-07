@@ -18,6 +18,8 @@ export default function TeacherInteraction() {
   const [activeSubject, setActiveSubject] = useState("");
   const chatRef = useRef(null);
 
+  const [resources, setResources] = useState([]);
+
   useEffect(() => {
     const teacherData = localStorage.getItem('activeTeacher');
     if (teacherData) {
@@ -26,6 +28,15 @@ export default function TeacherInteraction() {
       setActiveSubject(teacher.subject_id.charAt(0).toUpperCase() + teacher.subject_id.slice(1));
     }
   }, []);
+
+  useEffect(() => {
+    if (activeTeacher?.subject_id) {
+      fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/dashboard/subjects/${activeTeacher.subject_id}/resources`)
+        .then(res => res.json())
+        .then(data => setResources(data))
+        .catch(err => console.error("Error fetching subject resources:", err));
+    }
+  }, [activeTeacher]);
 
   const handleQuickAction = (actionId) => {
     if (!chatRef.current) return;
@@ -75,7 +86,7 @@ export default function TeacherInteraction() {
               <span className="pill online">Active Now</span>
             </div>
           </motion.div>
-
+ 
           <motion.div 
             className="learning-metrics"
             initial={{ opacity: 0, x: -20 }}
@@ -100,7 +111,7 @@ export default function TeacherInteraction() {
               </div>
             </div>
           </motion.div>
-
+ 
           <div className="quick-actions-container">
             <h4 className="section-label">Common Requests</h4>
             <div className="quick-actions-grid">
@@ -119,12 +130,12 @@ export default function TeacherInteraction() {
             </div>
           </div>
         </aside>
-
+ 
         {/* Middle Column: The Chat Agent */}
         <main className="interaction-main">
           <StudentChat ref={chatRef} />
         </main>
-
+ 
         {/* Right Column: Knowledge & History */}
         <aside className="interaction-right">
           <motion.div 
@@ -137,20 +148,21 @@ export default function TeacherInteraction() {
               <h3>Lecture Context</h3>
             </div>
             <div className="knowledge-sources">
-              <div className="source-item active">
-                <div className="source-icon"><FileText size={14} /></div>
-                <div className="source-details">
-                  <p className="source-name">Yesterday's Lecture.pdf</p>
-                  <p className="source-meta">Currently in context</p>
-                </div>
-              </div>
-              <div className="source-item">
-                <div className="source-icon"><FileText size={14} /></div>
-                <div className="source-details">
-                  <p className="source-name">Physics Basics.pdf</p>
-                  <p className="source-meta">Available</p>
-                </div>
-              </div>
+              {resources.length > 0 ? (
+                resources.map((res, index) => (
+                  <div key={res.id || index} className={`source-item ${index === 0 ? 'active' : ''}`}>
+                    <div className="source-icon"><FileText size={14} /></div>
+                    <div className="source-details">
+                      <p className="source-name">{res.title || res.filename}</p>
+                      <p className="source-meta">{index === 0 ? 'Currently in context' : 'Available'}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p style={{ color: "var(--color-muted)", fontSize: "0.8125rem", fontStyle: "italic", padding: "var(--space-sm) 0" }}>
+                  No resources uploaded for this subject yet.
+                </p>
+              )}
             </div>
             <button className="view-all-link">
               View all resources <ChevronRight size={14} />
