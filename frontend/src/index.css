@@ -1262,7 +1262,7 @@ a {
   justify-content: space-between;
   padding: 0 var(--space-xl);
   border-bottom: 1px solid var(--color-rule);
-  background-color: oklch(11% 0.008 40 / 0.92);
+  background-color: var(--color-paper-2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   flex-shrink: 0;
@@ -2411,7 +2411,7 @@ a {
 
 /* Teacher Interaction Workspace Styles */
 .interaction-page {
-  height: calc(100vh - 120px);
+  height: calc(100vh - 124px);
   overflow: hidden;
 }
 
@@ -3296,7 +3296,7 @@ a {
 
 /* Conversations / Chat Layout Styles */
 .conversations-page {
-  height: 100%;
+  height: calc(100vh - 124px);
   display: flex;
   flex-direction: column;
 }
@@ -3305,7 +3305,7 @@ a {
   display: grid;
   grid-template-columns: 240px 1fr 280px;
   gap: var(--space-lg);
-  height: calc(100vh - 140px);
+  height: 100%;
 }
 
 .chat-sidebar, .chat-context {
