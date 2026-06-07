@@ -328,7 +328,7 @@ export default function SubjectSelection() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          text: text, 
+          text: text.substring(0, 1000), // Safety cap to avoid overloading TTS
           voice_id: voiceId,
           language: "en" 
         }),

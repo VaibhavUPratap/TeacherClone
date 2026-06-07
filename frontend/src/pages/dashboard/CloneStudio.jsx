@@ -577,6 +577,38 @@ export default function CloneStudio() {
                     <span>{playingPreview ? "Stop Preview" : "Play Voice"}</span>
                   </button>
                 </div>
+                {/* Extracted Teaching Features Section */}
+                {jobStatus && jobStatus.features && (
+                  <div style={{ marginBottom: "var(--space-md)" }}>
+                    <h4 style={{ fontWeight: 600, fontSize: "0.9375rem", marginBottom: "var(--space-xs)" }}>Extracted Teaching Features</h4>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-sm)" }}>
+                      <div style={{ padding: "12px", backgroundColor: "var(--color-paper-3)", borderRadius: "8px", border: "1px solid var(--color-rule)" }}>
+                        <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", display: "block" }}>Vocabulary Level</span>
+                        <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--color-accent)" }}>
+                          {jobStatus.features.vocabulary_level || "Intermediate"}
+                        </span>
+                      </div>
+                      <div style={{ padding: "12px", backgroundColor: "var(--color-paper-3)", borderRadius: "8px", border: "1px solid var(--color-rule)" }}>
+                        <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", display: "block" }}>Voice Playback Pacing</span>
+                        <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--color-accent)" }}>
+                          {jobStatus.features.pacing_factor ? `${jobStatus.features.pacing_factor}x` : "1.00x"}
+                        </span>
+                      </div>
+                      <div style={{ padding: "12px", backgroundColor: "var(--color-paper-3)", borderRadius: "8px", border: "1px solid var(--color-rule)" }}>
+                        <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", display: "block" }}>Analogy Frequency</span>
+                        <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--color-accent)" }}>
+                          {jobStatus.features.analogy_frequency || "Medium"}
+                        </span>
+                      </div>
+                      <div style={{ padding: "12px", backgroundColor: "var(--color-paper-3)", borderRadius: "8px", border: "1px solid var(--color-rule)" }}>
+                        <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", display: "block" }}>Analogy Reference Style</span>
+                        <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--color-accent)" }}>
+                          {jobStatus.features.analogy_style || "general examples"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Personality Textarea */}
                 <div className="input-group" style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "var(--space-lg)" }}>

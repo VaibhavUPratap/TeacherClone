@@ -357,6 +357,7 @@ def _run_pipeline(
             "teacher_id": teacher_id,
             "teacher": teacher_record,
             "voice_ok": voice_ok,
+            "features": profile_data if 'profile_data' in locals() else None,
         })
 
     except Exception as exc:
